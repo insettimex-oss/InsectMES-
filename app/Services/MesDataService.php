@@ -28,6 +28,7 @@ class MesDataService
                 ['label' => 'Bioseguridad abierta', 'value' => DB::table('biosecurity_events')->where('status', 'OPEN')->count(), 'detail' => 'Acción requerida'],
                 ['label' => 'CAPA abiertas', 'value' => DB::table('quality_deviations')->where('status', '!=', 'CLOSED')->count(), 'detail' => 'Desviaciones activas'],
                 ['label' => 'Activos bloqueados', 'value' => DB::table('assets')->where('status', 'BLOCKED')->count(), 'detail' => 'Mantenimiento requerido'],
+                ['label' => 'OEE promedio', 'value' => number_format((float) DB::table('oee_snapshots')->whereDate('production_date', today())->avg('oee'), 1).'%', 'detail' => 'Cierres de turno de hoy'],
             ],
             'recentRuns' => DB::table('production_runs as r')
                 ->join('operations as o', 'o.id', '=', 'r.operation_id')
@@ -60,6 +61,7 @@ class MesDataService
             'environment' => $this->environment(),
             'biosecurity' => $this->biosecurity(),
             'mass-balance' => ['orders' => ProductionOrder::with(['part', 'massBalance'])->whereNotIn('status', ['CANCELLED'])->orderByDesc('created_at')->get()],
+            'performance' => $this->performance(),
             'maintenance' => $this->maintenance(),
             'audit' => ['auditEvents' => DB::table('audit_events as a')->leftJoin('users as u', 'u.id', '=', 'a.user_id')->orderByDesc('a.occurred_at')->limit(250)->get(['a.id', 'a.occurred_at', 'a.event', 'a.auditable_type', 'a.auditable_id', 'a.reason', 'a.ip_address', 'u.name as user'])],
             'continuity' => ['backupRuns' => DB::table('backup_runs')->orderByDesc('started_at')->limit(30)->get(), 'database' => basename((string) config('database.connections.sqlite.database')), 'schedule' => 'Diario 02:00', 'retention' => '14 días'],
@@ -76,7 +78,11 @@ class MesDataService
     {
         return [
             'orders' => ProductionOrder::with(['part', 'operations.operation', 'massBalance'])->orderByRaw("CASE priority WHEN 'CRITICAL' THEN 1 WHEN 'HIGH' THEN 2 WHEN 'NORMAL' THEN 3 ELSE 4 END")->orderBy('scheduled_start')->get(),
-            'parts' => Part::where('active', true)->whereIn('type', ['WIP', 'Producto Terminado'])->orderBy('code')->get(),
+            'parts' => Part::where('active', true)
+                ->whereIn('type', ['WIP', 'Producto Terminado'])
+                ->whereIn('id', DB::table('process_routes')->select('part_id')->distinct())
+                ->orderBy('code')
+                ->get(),
         ];
     }
 
@@ -90,6 +96,8 @@ class MesDataService
             'orders' => ProductionOrder::whereNotIn('status', ['CANCELLED'])->orderByDesc('created_at')->get(),
             'qualityDeviations' => DB::table('quality_deviations as d')->leftJoin('production_orders as po', 'po.id', '=', 'd.production_order_id')->leftJoin('containers as c', 'c.id', '=', 'd.container_id')->leftJoin('users as u', 'u.id', '=', 'd.owner_id')->orderByRaw("CASE d.status WHEN 'CLOSED' THEN 2 ELSE 1 END")->orderByDesc('d.created_at')->get(['d.id', 'd.number', 'd.source', 'd.severity', 'd.status', 'd.title', 'd.description', 'd.root_cause', 'd.disposition', 'd.due_at', 'd.closed_at', 'po.number as production_order', 'c.serial as container', 'u.name as owner']),
             'correctiveActions' => DB::table('corrective_actions as a')->join('quality_deviations as d', 'd.id', '=', 'a.quality_deviation_id')->leftJoin('users as u', 'u.id', '=', 'a.owner_id')->orderBy('a.due_at')->get(['a.id', 'a.quality_deviation_id', 'd.number as deviation', 'a.type', 'a.description', 'a.status', 'a.due_at', 'a.effectiveness_result', 'u.name as owner']),
+            'certificates' => DB::table('certificates_of_analysis as c')->leftJoin('production_orders as po', 'po.id', '=', 'c.production_order_id')->leftJoin('containers as x', 'x.id', '=', 'c.container_id')->leftJoin('users as u', 'u.id', '=', 'c.approved_by')->leftJoin('certificate_results as r', 'r.certificate_of_analysis_id', '=', 'c.id')->groupBy('c.id', 'c.number', 'c.status', 'c.created_at', 'c.approved_at', 'c.notes', 'po.number', 'x.serial', 'u.name')->orderByDesc('c.created_at')->get(['c.id', 'c.number', 'c.status', 'c.created_at', 'c.approved_at', 'c.notes', 'po.number as production_order', 'x.serial as container', 'u.name as approver', DB::raw('count(r.id) as result_count')]),
+            'retentionSamples' => DB::table('retention_samples as r')->join('containers as c', 'c.id', '=', 'r.container_id')->leftJoin('production_orders as po', 'po.id', '=', 'r.production_order_id')->orderByDesc('r.retained_at')->get(['r.id', 'r.code', 'c.serial as container', 'po.number as production_order', 'r.quantity', 'r.unit', 'r.storage_location', 'r.retained_at', 'r.expires_at', 'r.status']),
         ];
     }
 
@@ -112,6 +120,26 @@ class MesDataService
             'workOrders' => DB::table('maintenance_work_orders as m')->join('assets as a', 'a.id', '=', 'm.asset_id')->leftJoin('users as u', 'u.id', '=', 'm.assigned_to')->orderByRaw("CASE m.status WHEN 'COMPLETED' THEN 2 ELSE 1 END")->orderByDesc('m.created_at')->get(['m.id', 'm.number', 'a.code as asset', 'a.name as asset_name', 'm.type', 'm.priority', 'm.status', 'm.description', 'm.scheduled_at', 'm.completed_at', 'm.downtime_minutes', 'm.result', 'u.name as technician']),
             'workCenters' => WorkCenter::where('active', true)->orderBy('code')->get(),
             'locations' => DB::table('locations')->where('active', true)->orderBy('code')->get(),
+            'spareParts' => DB::table('spare_parts')->where('active', true)->orderBy('code')->get(),
+            'spareUsages' => DB::table('maintenance_spare_part_usages as u')->join('maintenance_work_orders as m', 'm.id', '=', 'u.maintenance_work_order_id')->join('spare_parts as s', 's.id', '=', 'u.spare_part_id')->orderByDesc('u.created_at')->get(['u.id', 'm.number as work_order', 's.code as spare_part', 's.name', 'u.quantity', 's.unit', 'u.created_at']),
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function performance(): array
+    {
+        return [
+            'shifts' => DB::table('shifts')->where('active', true)->orderBy('starts_at')->get(),
+            'downtimeReasons' => DB::table('downtime_reasons')->where('active', true)->orderBy('category')->orderBy('name')->get(),
+            'downtimeEvents' => DB::table('downtime_events as d')->join('work_centers as w', 'w.id', '=', 'd.work_center_id')->join('downtime_reasons as r', 'r.id', '=', 'd.downtime_reason_id')->leftJoin('production_orders as po', 'po.id', '=', 'd.production_order_id')->orderByRaw("CASE d.status WHEN 'OPEN' THEN 1 ELSE 2 END")->orderByDesc('d.started_at')->limit(200)->get(['d.id', 'd.number', 'w.code as work_center', 'r.name as reason', 'r.category', 'po.number as production_order', 'd.status', 'd.started_at', 'd.ended_at', 'd.duration_minutes', 'd.notes']),
+            'oeeSnapshots' => DB::table('oee_snapshots as o')->join('work_centers as w', 'w.id', '=', 'o.work_center_id')->join('shifts as s', 's.id', '=', 'o.shift_id')->orderByDesc('o.production_date')->orderBy('s.starts_at')->limit(200)->get(['o.id', 'o.production_date', 's.code as shift', 'w.code as work_center', 'o.planned_minutes', 'o.downtime_minutes', 'o.total_count', 'o.good_count', 'o.availability', 'o.performance', 'o.quality', 'o.oee', 'o.notes']),
+            'workCenters' => WorkCenter::where('active', true)->orderBy('code')->get(),
+            'orders' => ProductionOrder::whereIn('status', ['RELEASED', 'IN_PROGRESS'])->orderBy('scheduled_start')->get(),
+            'oeeSummary' => [
+                'oee' => round((float) DB::table('oee_snapshots')->avg('oee'), 1),
+                'openDowntimes' => DB::table('downtime_events')->where('status', 'OPEN')->count(),
+                'downtimeMinutes' => (int) DB::table('downtime_events')->whereDate('started_at', today())->sum('duration_minutes'),
+            ],
         ];
     }
 

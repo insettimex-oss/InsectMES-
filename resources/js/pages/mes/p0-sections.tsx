@@ -218,7 +218,7 @@ export function OrdersSection({ data }: { data: Props }) {
                 <form className="mes-form" onSubmit={submit}>
                     <Grid>
                         <label>
-                            Producto
+                            Producto con ruta aprobada
                             <select
                                 required
                                 value={form.data.part_id}
@@ -305,6 +305,11 @@ export function OrdersSection({ data }: { data: Props }) {
                             />
                         </label>
                     </Grid>
+                    {Object.keys(form.errors).length > 0 && (
+                        <p className="form-error">
+                            {Object.values(form.errors).join(' ')}
+                        </p>
+                    )}
                     <div className="form-actions">
                         <button
                             className="primary-button"

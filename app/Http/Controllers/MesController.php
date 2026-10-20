@@ -32,7 +32,7 @@ class MesController extends Controller
 
     public function section(string $section): Response
     {
-        abort_unless(in_array($section, ['parts', 'locations', 'operations', 'routing', 'bom', 'orders', 'control', 'nursery', 'feeding', 'inventory', 'trace', 'quality', 'environment', 'biosecurity', 'mass-balance', 'maintenance', 'audit', 'continuity', 'governance', 'parameters', 'costs', 'users'], true), 404);
+        abort_unless(in_array($section, ['parts', 'locations', 'operations', 'routing', 'bom', 'orders', 'control', 'nursery', 'feeding', 'inventory', 'trace', 'quality', 'environment', 'biosecurity', 'mass-balance', 'performance', 'maintenance', 'audit', 'continuity', 'governance', 'parameters', 'costs', 'users'], true), 404);
         abort_if($section === 'users' && request()->user()->role !== 'admin', 403);
         abort_if(in_array($section, ['audit', 'continuity'], true) && ! in_array(request()->user()->role, ['admin', 'supervisor'], true), 403);
 

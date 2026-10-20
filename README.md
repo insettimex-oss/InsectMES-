@@ -1,6 +1,6 @@
 # InsectMES Laravel
 
-Reconstrucción del prototipo InsectMES como aplicación persistente 
+Reconstrucción del prototipo InsectMES como aplicación persistente
 
 ## Stack
 
@@ -22,6 +22,11 @@ Reconstrucción del prototipo InsectMES como aplicación persistente
 - Guardería N0–N5 con ubicación y bitácora por movimiento.
 - Recibo e inventario de contenedores serializados.
 - Genealogía padre-hijo.
+- Órdenes y rutas separadas para larva comercial, postproceso y reproducción.
+- Alimentación trazable, calidad con CAPA, COA y muestras de retención.
+- Activos, calibración, órdenes de mantenimiento y almacén de repuestos MRO.
+- Turnos, causas de paro y cálculo OEE por centro de trabajo.
+- Bioseguridad, ambiente, balance de masa, auditoría y respaldos verificados.
 - Parámetros operativos y estructura de costos estándar.
 - Usuarios y seguridad proporcionados por el starter kit oficial.
 - Sidebar integrado, responsive y colapsable con `Ctrl/Cmd + B`.
@@ -29,7 +34,7 @@ Reconstrucción del prototipo InsectMES como aplicación persistente
 ## Instalación
 
 ```powershell
-cd C:\Users\inset\Documentos\InsectMES-Laravel
+Set-Location -LiteralPath 'C:\Users\inset\Documentos\InsectMES-Laravel'
 composer install
 pnpm install
 Copy-Item .env.example .env
@@ -53,7 +58,7 @@ La contraseña es únicamente para desarrollo local y debe cambiarse antes de pu
 
 ```powershell
 php vendor\phpunit\phpunit\phpunit
-pnpm types:check
+pnpm run types:check
 pnpm check
 pnpm build
 vendor\bin\pint --test
@@ -69,7 +74,7 @@ PostgreSQL después de validar capacidad, respaldos y disponibilidad.
 
 ## Diagnóstico de alcance
 
-Esta versión es un MVP operacional y no debe considerarse todavía un MES
-completo. El análisis de brechas, los módulos específicos y
+Esta versión es un MES funcional para piloto y no debe considerarse todavía un MES
+industrial completo. El análisis de brechas, los módulos específicos y
 el roadmap recomendado están documentados en
 [`output/pdf/diagnostico_y_roadmap_insectmes_bsf.pdf`](output/pdf/diagnostico_y_roadmap_insectmes_bsf.pdf).

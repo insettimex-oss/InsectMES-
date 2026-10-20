@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 class MesP0Controller extends Controller
@@ -30,11 +31,21 @@ class MesP0Controller extends Controller
             'notes' => ['nullable', 'string', 'max:1000'],
         ]);
 
-        $order = DB::transaction(function () use ($data, $request): ProductionOrder {
-            $part = DB::table('parts')->where('id', $data['part_id'])->first();
-            if ($part === null) {
-                abort(422, 'Parte no disponible.');
-            }
+        $part = DB::table('parts')->where('id', $data['part_id'])->where('active', true)->first();
+        if ($part === null) {
+            throw ValidationException::withMessages([
+                'part_id' => 'La parte seleccionada no está disponible.',
+            ]);
+        }
+
+        $routes = DB::table('process_routes')->where('part_id', $part->id)->orderBy('sequence')->get();
+        if ($routes->isEmpty()) {
+            throw ValidationException::withMessages([
+                'part_id' => 'Selecciona un producto que tenga una ruta de proceso aprobada.',
+            ]);
+        }
+
+        $order = DB::transaction(function () use ($data, $request, $part, $routes): ProductionOrder {
             $number = 'OP-'.now()->format('Y').'-'.str_pad((string) (ProductionOrder::whereYear('created_at', now()->year)->count() + 1), 4, '0', STR_PAD_LEFT);
             $order = ProductionOrder::create($data + [
                 'number' => $number,
@@ -42,8 +53,6 @@ class MesP0Controller extends Controller
                 'unit' => $part->unit,
                 'created_by' => $request->user()->id,
             ]);
-            $routes = DB::table('process_routes')->where('part_id', $part->id)->orderBy('sequence')->get();
-            abort_if($routes->isEmpty(), 422, 'La parte no tiene una ruta de proceso aprobada.');
             foreach ($routes as $route) {
                 $instruction = DB::table('work_instructions')->where('operation_id', $route->operation_id)->where('active', true)->orderByDesc('version')->first();
                 DB::table('production_order_operations')->insert([

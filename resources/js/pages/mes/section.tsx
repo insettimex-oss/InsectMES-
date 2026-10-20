@@ -25,6 +25,7 @@ import {
     Thermometer,
     Utensils,
     Wrench,
+    Gauge,
 } from 'lucide-react';
 import { MesRecordDialog } from '@/components/mes-record-dialog';
 import {
@@ -43,6 +44,11 @@ import {
     FeedingSection,
     MaintenanceSection,
 } from '@/pages/mes/p1-sections';
+import {
+    MaintenanceSparesSection,
+    PerformanceSection,
+    QualityReleaseSection,
+} from '@/pages/mes/industrial-sections';
 
 type Part = {
     id: number;
@@ -135,6 +141,15 @@ type SectionData = {
     assets?: Row[];
     workOrders?: Row[];
     workCenters?: Row[];
+    shifts?: Row[];
+    downtimeReasons?: Row[];
+    downtimeEvents?: Row[];
+    oeeSnapshots?: Row[];
+    oeeSummary?: Record<string, string | number>;
+    certificates?: Row[];
+    retentionSamples?: Row[];
+    spareParts?: Row[];
+    spareUsages?: Row[];
     auditEvents?: Row[];
     backupRuns?: Row[];
     documents?: Row[];
@@ -258,6 +273,13 @@ const meta: Record<
         description:
             'Entradas, biomasa, frass, coproductos, evaporación y pérdidas.',
         icon: Scale,
+    },
+    performance: {
+        title: 'OEE, turnos y paros',
+        kicker: 'CIERRE INDUSTRIAL · CONTROLAR',
+        description:
+            'Disponibilidad, rendimiento, calidad y causas de pérdida por centro y turno.',
+        icon: Gauge,
     },
     maintenance: {
         title: 'Mantenimiento y calibración',
@@ -1239,6 +1261,7 @@ export default function Section({
                 <div className="stack-xl">
                     <QualitySection data={data} />
                     <AdvancedQualitySection data={data} />
+                    <QualityReleaseSection data={data} />
                 </div>
             );
         if (section === 'environment')
@@ -1247,8 +1270,15 @@ export default function Section({
             return <BiosecuritySection data={data} />;
         if (section === 'mass-balance')
             return <MassBalanceSection data={data} />;
+        if (section === 'performance')
+            return <PerformanceSection data={data} />;
         if (section === 'maintenance')
-            return <MaintenanceSection data={data} />;
+            return (
+                <div className="stack-xl">
+                    <MaintenanceSection data={data} />
+                    <MaintenanceSparesSection data={data} />
+                </div>
+            );
         if (section === 'audit') return <AuditSection data={data} />;
         if (section === 'continuity') return <ContinuitySection data={data} />;
         if (section === 'governance') return <GovernanceSection data={data} />;

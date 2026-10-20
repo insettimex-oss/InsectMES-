@@ -23,6 +23,7 @@ import {
     Users,
     Utensils,
     Wrench,
+    Gauge,
 } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavMain } from '@/components/nav-main';
@@ -65,6 +66,7 @@ const groups: Array<{ label: string; items: NavItem[] }> = [
         label: 'Controlar',
         items: [
             { title: 'Calidad', href: '/mes/quality', icon: ClipboardCheck },
+            { title: 'OEE y paros', href: '/mes/performance', icon: Gauge },
             { title: 'Ambiente', href: '/mes/environment', icon: Thermometer },
             {
                 title: 'Balance de masa',

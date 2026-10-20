@@ -92,13 +92,25 @@ class DatabaseSeeder extends Seeder
             ]);
         }
 
-        $routePart = Part::where('code', 'BSF005')->firstOrFail();
-        foreach (Operation::orderBy('sort_order')->get() as $operation) {
-            DB::table('process_routes')->updateOrInsert(
-                ['part_id' => $routePart->id, 'operation_id' => $operation->id],
-                ['sequence' => $operation->sort_order, 'created_at' => now(), 'updated_at' => now()],
-            );
+        $routeMap = [
+            'BSF005' => ['EGG', 'NUR', 'TRA', 'REA', 'HAR'],
+            'FG-BOX' => ['WAS', 'SAN', 'DRY', 'FRA', 'GRI', 'PAC', 'BOX', 'SHP'],
+            'BSF002' => ['PUP', 'DAR', 'LOV'],
+        ];
+        foreach ($routeMap as $partCode => $operationCodes) {
+            $routeTarget = Part::where('code', $partCode)->firstOrFail();
+            DB::table('process_routes')->where('part_id', $routeTarget->id)->delete();
+            foreach ($operationCodes as $index => $operationCode) {
+                DB::table('process_routes')->insert([
+                    'part_id' => $routeTarget->id,
+                    'operation_id' => Operation::where('code', $operationCode)->value('id'),
+                    'sequence' => ($index + 1) * 10,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
         }
+        $routePart = Part::where('code', 'BSF005')->firstOrFail();
         foreach ([['WIP-NUR', 'PREMIUM-FEED', 0.48, 'kg'], ['WIP-NUR', 'MP-004', 1.12, 'l'], ['WIP-NUR', 'MP-003', 0.15, 'kg'], ['WIP-LAR17', 'F-001', 4, 'kg']] as [$parent, $component, $quantity, $unit]) {
             DB::table('bom_lines')->updateOrInsert(
                 ['parent_part_id' => Part::where('code', $parent)->value('id'), 'component_part_id' => Part::where('code', $component)->value('id')],
@@ -240,6 +252,23 @@ class DatabaseSeeder extends Seeder
                 'serial_number' => $serial,
                 'next_maintenance_at' => $maintenanceDays ? today()->addDays($maintenanceDays) : null,
                 'calibration_due_at' => $calibrationDays ? today()->addDays($calibrationDays) : null,
+                'active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
+        foreach ([
+            ['REP-BAL-01', 'Celda de carga para báscula', 3, 1, 'pc', 'ALM-MRO'],
+            ['REP-MOT-01', 'Motorreductor de alimentación', 2, 1, 'pc', 'ALM-MRO'],
+            ['REP-FIL-01', 'Filtro sanitario', 12, 4, 'pc', 'ALM-MRO'],
+        ] as [$code, $name, $quantity, $reorder, $unit, $storage]) {
+            DB::table('spare_parts')->updateOrInsert(['code' => $code], [
+                'name' => $name,
+                'quantity_on_hand' => $quantity,
+                'reorder_point' => $reorder,
+                'unit' => $unit,
+                'storage_location' => $storage,
                 'active' => true,
                 'created_at' => now(),
                 'updated_at' => now(),

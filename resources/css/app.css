@@ -362,12 +362,7 @@
         font-size: 0.75rem;
     }
     .stat-card i {
-        position: absolute;
-        right: 0;
-        bottom: 0;
-        left: 0;
-        height: 4px;
-        background: #88c63e;
+        display: none;
     }
     .content-grid {
         display: grid;
@@ -680,6 +675,7 @@
     }
     .primary-button:hover {
         background: #1b6147;
+        color: #fff;
     }
     .primary-button svg {
         width: 1rem;
@@ -1036,6 +1032,7 @@
     .dark .primary-button:hover,
     .dark .primary-link:hover {
         background: #88c63e;
+        color: #102018;
     }
     .dark .small-button,
     .dark .form-actions button:not(.primary-button) {
@@ -1517,6 +1514,7 @@
     .secondary-button:hover {
         border-color: #91b4a0;
         background: #f2f7f4;
+        color: #204f38;
     }
     .record-actions {
         display: flex;
@@ -1625,6 +1623,18 @@
         border-color: #304b3c;
         background: #17281f;
         color: #c4d5cb;
+    }
+    .dark .secondary-button:hover,
+    .dark .mes-record-dialog .secondary-button:hover {
+        border-color: #5a8068;
+        background: #263e31;
+        color: #f1f7f3;
+    }
+    .mes-record-dialog .primary-button:hover {
+        color: #fff;
+    }
+    .dark .mes-record-dialog .primary-button:hover {
+        color: #102018;
     }
     .dark .balance-summary {
         background: #1d3428;

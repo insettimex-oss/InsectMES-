@@ -27,7 +27,7 @@ class MesWorkflowTest extends TestCase
 
     public function test_mes_sections_are_available_to_authenticated_users(): void
     {
-        foreach (['parts', 'routing', 'orders', 'control', 'nursery', 'feeding', 'inventory', 'trace', 'quality', 'environment', 'biosecurity', 'mass-balance', 'maintenance', 'audit', 'continuity', 'governance', 'parameters', 'costs'] as $section) {
+        foreach (['parts', 'routing', 'orders', 'control', 'nursery', 'feeding', 'inventory', 'trace', 'quality', 'environment', 'biosecurity', 'mass-balance', 'performance', 'maintenance', 'audit', 'continuity', 'governance', 'parameters', 'costs'] as $section) {
             $this->get("/mes/{$section}")->assertOk();
         }
     }
@@ -90,6 +90,31 @@ class MesWorkflowTest extends TestCase
         $this->assertSame('RELEASED', $order->fresh()->status);
         $this->assertDatabaseHas('production_order_operations', ['production_order_id' => $order->id, 'status' => 'READY']);
         $this->assertDatabaseHas('audit_events', ['event' => 'ORDER_STATUS_CHANGED', 'auditable_id' => (string) $order->id]);
+    }
+
+    public function test_order_form_only_offers_parts_with_an_approved_route(): void
+    {
+        $response = $this->get('/mes/orders')->assertOk();
+
+        $response->assertInertia(fn ($page) => $page
+            ->where('data.parts', fn ($parts) => collect($parts)->isNotEmpty()
+                && collect($parts)->every(fn ($part) => DB::table('process_routes')->where('part_id', $part['id'])->exists()))
+        );
+    }
+
+    public function test_order_without_an_approved_route_returns_a_form_error(): void
+    {
+        $part = Part::where('code', 'FG001')->firstOrFail();
+        $before = ProductionOrder::count();
+
+        $this->from('/mes/orders')->post('/mes/orders', [
+            'part_id' => $part->id,
+            'planned_quantity' => 100,
+            'priority' => 'NORMAL',
+            'scheduled_start' => now()->addDay()->toDateTimeString(),
+        ])->assertRedirect('/mes/orders')->assertSessionHasErrors('part_id');
+
+        $this->assertSame($before, ProductionOrder::count());
     }
 
     public function test_container_can_be_split_and_merged_with_grouped_genealogy(): void
@@ -202,5 +227,106 @@ class MesWorkflowTest extends TestCase
 
         $this->assertDatabaseHas('maintenance_work_orders', ['id' => $order->id, 'status' => 'COMPLETED', 'downtime_minutes' => 42]);
         $this->assertDatabaseHas('assets', ['id' => $asset->id, 'status' => 'AVAILABLE']);
+    }
+
+    public function test_process_routes_are_separated_by_business_output(): void
+    {
+        $routes = fn (string $part): array => DB::table('process_routes as r')
+            ->join('parts as p', 'p.id', '=', 'r.part_id')
+            ->join('operations as o', 'o.id', '=', 'r.operation_id')
+            ->where('p.code', $part)->orderBy('r.sequence')->pluck('o.code')->all();
+
+        $this->assertSame(['EGG', 'NUR', 'TRA', 'REA', 'HAR'], $routes('BSF005'));
+        $this->assertSame(['WAS', 'SAN', 'DRY', 'FRA', 'GRI', 'PAC', 'BOX', 'SHP'], $routes('FG-BOX'));
+        $this->assertSame(['PUP', 'DAR', 'LOV'], $routes('BSF002'));
+    }
+
+    public function test_downtime_and_oee_are_recorded_for_a_shift(): void
+    {
+        $center = DB::table('work_centers')->where('code', 'WC-REA')->first();
+        $reason = DB::table('downtime_reasons')->where('code', 'FAILURE')->first();
+        $shift = DB::table('shifts')->where('code', 'T1')->first();
+
+        $this->post('/mes/performance/downtimes', [
+            'work_center_id' => $center->id,
+            'downtime_reason_id' => $reason->id,
+            'started_at' => now()->subMinutes(20)->toDateTimeString(),
+            'notes' => 'Atasco de dosificador.',
+        ])->assertRedirect();
+        $downtime = DB::table('downtime_events')->latest('id')->first();
+        $this->assertDatabaseHas('work_centers', ['id' => $center->id, 'status' => 'DOWNTIME']);
+
+        $this->patch("/mes/performance/downtimes/{$downtime->id}/close", [
+            'ended_at' => now()->toDateTimeString(),
+            'notes' => 'Limpieza y prueba funcional.',
+        ])->assertRedirect();
+        $this->assertDatabaseHas('downtime_events', ['id' => $downtime->id, 'status' => 'CLOSED', 'duration_minutes' => 20]);
+
+        $this->post('/mes/performance/oee', [
+            'production_date' => today()->toDateString(),
+            'shift_id' => $shift->id,
+            'work_center_id' => $center->id,
+            'planned_minutes' => 480,
+            'downtime_minutes' => 60,
+            'ideal_cycle_minutes' => 1,
+            'total_count' => 300,
+            'good_count' => 290,
+        ])->assertRedirect();
+        $snapshot = DB::table('oee_snapshots')->first();
+        $this->assertEqualsWithDelta(87.5, (float) $snapshot->availability, 0.001);
+        $this->assertEqualsWithDelta(60.417, (float) $snapshot->oee, 0.001);
+    }
+
+    public function test_coa_and_retention_sample_complete_quality_release(): void
+    {
+        $container = Container::where('serial', 'BSF000106')->firstOrFail();
+        $specification = DB::table('quality_specifications')->where('code', 'LAR-MOIST')->first();
+        $this->post('/mes/quality/inspections', [
+            'quality_specification_id' => $specification->id,
+            'container_id' => $container->id,
+            'result_value' => 65,
+            'notes' => 'Resultado conforme para liberación.',
+        ])->assertRedirect();
+
+        $this->post('/mes/quality/certificates', [
+            'container_id' => $container->id,
+            'notes' => 'COA de prueba.',
+        ])->assertRedirect();
+        $certificate = DB::table('certificates_of_analysis')->first();
+        $this->assertDatabaseCount('certificate_results', 1);
+        $this->patch("/mes/quality/certificates/{$certificate->id}/approve")->assertRedirect();
+        $this->assertDatabaseHas('certificates_of_analysis', ['id' => $certificate->id, 'status' => 'APPROVED']);
+
+        $this->post('/mes/quality/retention-samples', [
+            'container_id' => $container->id,
+            'quantity' => 250,
+            'unit' => 'g',
+            'storage_location' => 'RET-A1',
+            'retained_at' => today()->toDateString(),
+            'expires_at' => today()->addYear()->toDateString(),
+        ])->assertRedirect();
+        $this->assertDatabaseHas('retention_samples', ['container_id' => $container->id, 'status' => 'AVAILABLE']);
+    }
+
+    public function test_spare_part_consumption_is_linked_to_maintenance(): void
+    {
+        $asset = DB::table('assets')->where('code', 'EQ-REA-01')->first();
+        $this->post('/mes/maintenance/work-orders', [
+            'asset_id' => $asset->id,
+            'type' => 'CORRECTIVE',
+            'priority' => 'HIGH',
+            'description' => 'Sustituir componente con desgaste.',
+        ])->assertRedirect();
+        $order = DB::table('maintenance_work_orders')->latest('id')->first();
+        $spare = DB::table('spare_parts')->where('code', 'REP-MOT-01')->first();
+
+        $this->post('/mes/maintenance/spare-parts/consume', [
+            'maintenance_work_order_id' => $order->id,
+            'spare_part_id' => $spare->id,
+            'quantity' => 1,
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('spare_parts', ['id' => $spare->id, 'quantity_on_hand' => 1]);
+        $this->assertDatabaseHas('maintenance_spare_part_usages', ['maintenance_work_order_id' => $order->id, 'spare_part_id' => $spare->id, 'quantity' => 1]);
     }
 }

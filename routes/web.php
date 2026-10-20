@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\MesController;
+use App\Http\Controllers\MesIndustrialController;
 use App\Http\Controllers\MesP0Controller;
 use App\Http\Controllers\MesPhaseOneController;
 use Illuminate\Support\Facades\Route;
@@ -34,6 +35,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('mes/maintenance/assets', [MesPhaseOneController::class, 'createAsset'])->name('mes.maintenance.assets.store');
     Route::post('mes/maintenance/work-orders', [MesPhaseOneController::class, 'createWorkOrder'])->name('mes.maintenance.orders.store');
     Route::patch('mes/maintenance/work-orders/{workOrder}/complete', [MesPhaseOneController::class, 'completeWorkOrder'])->name('mes.maintenance.orders.complete');
+    Route::post('mes/performance/downtimes', [MesIndustrialController::class, 'openDowntime'])->name('mes.performance.downtimes.store');
+    Route::patch('mes/performance/downtimes/{downtime}/close', [MesIndustrialController::class, 'closeDowntime'])->name('mes.performance.downtimes.close');
+    Route::post('mes/performance/oee', [MesIndustrialController::class, 'recordOee'])->name('mes.performance.oee.store');
+    Route::post('mes/quality/certificates', [MesIndustrialController::class, 'createCertificate'])->name('mes.quality.certificates.store');
+    Route::patch('mes/quality/certificates/{certificate}/approve', [MesIndustrialController::class, 'approveCertificate'])->name('mes.quality.certificates.approve');
+    Route::post('mes/quality/retention-samples', [MesIndustrialController::class, 'retainSample'])->name('mes.quality.retention.store');
+    Route::post('mes/maintenance/spare-parts', [MesIndustrialController::class, 'createSparePart'])->name('mes.maintenance.spares.store');
+    Route::post('mes/maintenance/spare-parts/consume', [MesIndustrialController::class, 'consumeSparePart'])->name('mes.maintenance.spares.consume');
 });
 
 require __DIR__.'/settings.php';
