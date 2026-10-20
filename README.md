@@ -1,7 +1,6 @@
 # InsectMES Laravel
 
-Reconstrucción del prototipo InsectMES como aplicación persistente para el ciclo de
-bioconversión de mosca soldado negra (BSF).
+Reconstrucción del prototipo InsectMES como aplicación persistente 
 
 ## Stack
 
@@ -68,12 +67,9 @@ las páginas React sin duplicar una API de autenticación. SQLite es apropiado p
 instalación local; para operación concurrente en planta se recomienda migrar a
 PostgreSQL después de validar capacidad, respaldos y disponibilidad.
 
-La aplicación original en `C:\Users\inset\OneDrive\Documentos\InsectMES` no fue
-modificada.
-
 ## Diagnóstico de alcance
 
-Esta versión es un MVP operacional y no debe considerarse todavía un MES industrial
-completo. El análisis de brechas, los módulos específicos para mosca soldado negro y
+Esta versión es un MVP operacional y no debe considerarse todavía un MES
+completo. El análisis de brechas, los módulos específicos y
 el roadmap recomendado están documentados en
 [`output/pdf/diagnostico_y_roadmap_insectmes_bsf.pdf`](output/pdf/diagnostico_y_roadmap_insectmes_bsf.pdf).
