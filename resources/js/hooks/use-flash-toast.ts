@@ -1,6 +1,7 @@
 import { router } from '@inertiajs/react';
 import { useEffect } from 'react';
-import { toast } from 'sonner';
+import Swal, { type SweetAlertIcon } from 'sweetalert2';
+import 'sweetalert2/dist/sweetalert2.min.css';
 import type { FlashToast } from '@/types/ui';
 
 export function useFlashToast(): void {
@@ -13,7 +14,22 @@ export function useFlashToast(): void {
                 return;
             }
 
-            toast[data.type](data.message);
+            void Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: data.type as SweetAlertIcon,
+                title: data.message,
+                showConfirmButton: false,
+                timer: 3400,
+                timerProgressBar: true,
+                width: '22rem',
+                padding: '0.8rem 1rem',
+                customClass: {
+                    popup: 'mes-swal-toast',
+                    title: 'mes-swal-title',
+                    timerProgressBar: 'mes-swal-progress',
+                },
+            });
         });
     }, []);
 }

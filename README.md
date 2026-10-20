@@ -1,27 +1,79 @@
-# Laravel + React Starter Kit
+# InsectMES Laravel
 
-## Introduction
+Reconstrucción del prototipo InsectMES como aplicación persistente para el ciclo de
+bioconversión de mosca soldado negra (BSF).
 
-Our React starter kit provides a robust, modern starting point for building Laravel applications with a React frontend using [Inertia](https://inertiajs.com).
+## Stack
 
-Inertia allows you to build modern, single-page React applications using classic server-side routing and controllers. This lets you enjoy the frontend power of React combined with the incredible backend productivity of Laravel and lightning-fast Vite compilation.
+- Laravel 13 y PHP 8.3 o posterior.
+- React 19, TypeScript e Inertia 3.
+- Tailwind CSS 4, componentes shadcn/ui y `lucide-react`.
+- SQLite para desarrollo y demostración local.
+- Laravel Fortify para autenticación, recuperación de contraseña, verificación,
+  segundo factor y passkeys.
+- PHPUnit para integración y Vite Plus para tipos, lint y compilación.
 
-This React starter kit utilizes React 19, TypeScript, Tailwind, and the [shadcn/ui](https://ui.shadcn.com) and [radix-ui](https://www.radix-ui.com) component libraries.
+## Alcance implementado
 
-## Official Documentation
+- Inicio con indicadores de inventario, producción, guardería y workcenters.
+- Catálogos de partes, ubicaciones y operaciones.
+- Process Routing y BOM.
+- Control Panel transaccional: consume saldo, genera serial de salida y registra
+  movimiento, corrida y genealogía en una sola transacción.
+- Guardería N0–N5 con ubicación y bitácora por movimiento.
+- Recibo e inventario de contenedores serializados.
+- Genealogía padre-hijo.
+- Parámetros operativos y estructura de costos estándar.
+- Usuarios y seguridad proporcionados por el starter kit oficial.
+- Sidebar integrado, responsive y colapsable con `Ctrl/Cmd + B`.
 
-Documentation for all Laravel starter kits can be found on the [Laravel website](https://laravel.com/docs/starter-kits).
+## Instalación
 
-## Contributing
+```powershell
+cd C:\Users\inset\Documentos\InsectMES-Laravel
+composer install
+pnpm install
+Copy-Item .env.example .env
+php artisan key:generate
+New-Item database\database.sqlite -ItemType File -Force
+php artisan migrate:fresh --seed
+pnpm build
+composer run dev
+```
 
-Thank you for considering contributing to our starter kit! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Después abre `http://localhost:8000`.
 
-All contributions to the Starter Kits from now on should be made through [Maestro](https://github.com/laravel/maestro).
+Usuario inicial de desarrollo:
 
-## Code of Conduct
+- Correo: `admin@insetti.com`
+- Contraseña: `InsectMES2026!`
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+La contraseña es únicamente para desarrollo local y debe cambiarse antes de publicar.
 
-## License
+## Verificación
 
-The Laravel + React starter kit is open-sourced software licensed under the MIT license.
+```powershell
+php vendor\phpunit\phpunit\phpunit
+pnpm types:check
+pnpm check
+pnpm build
+vendor\bin\pint --test
+```
+
+## Arquitectura
+
+El sistema es un monolito modular. Laravel conserva la autoridad sobre autenticación,
+validación, autorización, transacciones y persistencia. Inertia entrega datos tipados a
+las páginas React sin duplicar una API de autenticación. SQLite es apropiado para esta
+instalación local; para operación concurrente en planta se recomienda migrar a
+PostgreSQL después de validar capacidad, respaldos y disponibilidad.
+
+La aplicación original en `C:\Users\inset\OneDrive\Documentos\InsectMES` no fue
+modificada.
+
+## Diagnóstico de alcance
+
+Esta versión es un MVP operacional y no debe considerarse todavía un MES industrial
+completo. El análisis de brechas, los módulos específicos para mosca soldado negro y
+el roadmap recomendado están documentados en
+[`output/pdf/diagnostico_y_roadmap_insectmes_bsf.pdf`](output/pdf/diagnostico_y_roadmap_insectmes_bsf.pdf).

@@ -1,11 +1,32 @@
 <?php
 
+use App\Http\Controllers\MesController;
+use App\Http\Controllers\MesP0Controller;
 use Illuminate\Support\Facades\Route;
 
-Route::inertia('/', 'welcome')->name('home');
+Route::redirect('/', '/dashboard')->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::inertia('dashboard', 'dashboard')->name('dashboard');
+    Route::get('dashboard', [MesController::class, 'dashboard'])->name('dashboard');
+    Route::get('mes/{section}', [MesController::class, 'section'])->name('mes.section');
+    Route::post('mes/inventory/receive', [MesController::class, 'receive'])->name('mes.inventory.receive');
+    Route::patch('mes/inventory/{container}/move', [MesController::class, 'moveContainer'])->name('mes.inventory.move');
+    Route::post('mes/production', [MesController::class, 'produce'])->name('mes.production.store');
+    Route::patch('mes/nursery/{batch}/advance', [MesController::class, 'advanceNursery'])->name('mes.nursery.advance');
+    Route::patch('mes/parameters/{parameter}', [MesController::class, 'updateParameter'])->name('mes.parameters.update');
+    Route::patch('mes/work-centers/{workCenter}', [MesController::class, 'updateWorkCenter'])->name('mes.work-centers.update');
+    Route::post('mes/orders', [MesP0Controller::class, 'createOrder'])->name('mes.orders.store');
+    Route::patch('mes/orders/{order}/status', [MesP0Controller::class, 'updateOrderStatus'])->name('mes.orders.status');
+    Route::post('mes/trace/{container}/split', [MesP0Controller::class, 'split'])->name('mes.trace.split');
+    Route::post('mes/trace/merge', [MesP0Controller::class, 'merge'])->name('mes.trace.merge');
+    Route::post('mes/quality/inspections', [MesP0Controller::class, 'inspectQuality'])->name('mes.quality.inspect');
+    Route::patch('mes/quality/inspections/{inspection}/disposition', [MesP0Controller::class, 'disposeQuality'])->name('mes.quality.dispose');
+    Route::post('mes/environment/readings', [MesP0Controller::class, 'recordEnvironment'])->name('mes.environment.record');
+    Route::patch('mes/environment/readings/{reading}/acknowledge', [MesP0Controller::class, 'acknowledgeEnvironment'])->name('mes.environment.acknowledge');
+    Route::post('mes/biosecurity/events', [MesP0Controller::class, 'reportBiosecurity'])->name('mes.biosecurity.store');
+    Route::patch('mes/biosecurity/events/{event}/close', [MesP0Controller::class, 'closeBiosecurity'])->name('mes.biosecurity.close');
+    Route::post('mes/mass-balance/{order}', [MesP0Controller::class, 'closeMassBalance'])->name('mes.mass-balance.close');
+    Route::post('mes/continuity/backup', [MesP0Controller::class, 'runBackup'])->name('mes.continuity.backup');
 });
 
 require __DIR__.'/settings.php';
