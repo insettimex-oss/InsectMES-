@@ -23,6 +23,8 @@ import {
     ScrollText,
     ShieldAlert,
     Thermometer,
+    Utensils,
+    Wrench,
 } from 'lucide-react';
 import { MesRecordDialog } from '@/components/mes-record-dialog';
 import {
@@ -36,6 +38,11 @@ import {
     QualitySection,
     TraceSection,
 } from '@/pages/mes/p0-sections';
+import {
+    AdvancedQualitySection,
+    FeedingSection,
+    MaintenanceSection,
+} from '@/pages/mes/p1-sections';
 
 type Part = {
     id: number;
@@ -120,6 +127,14 @@ type SectionData = {
     environmentalLimits?: Row[];
     environmentalReadings?: Row[];
     biosecurityEvents?: Row[];
+    feedingEvents?: Row[];
+    targetContainers?: Row[];
+    substrateContainers?: Row[];
+    qualityDeviations?: Row[];
+    correctiveActions?: Row[];
+    assets?: Row[];
+    workOrders?: Row[];
+    workCenters?: Row[];
     auditEvents?: Row[];
     backupRuns?: Row[];
     documents?: Row[];
@@ -198,6 +213,13 @@ const meta: Record<
         description: 'Seguimiento visual de los lotes N0–N5.',
         icon: Sprout,
     },
+    feeding: {
+        title: 'Alimentación de larveros',
+        kicker: 'FASE 1 · EJECUTAR',
+        description:
+            'Dosificación trazable de sustrato con captura por serial y descuento de inventario.',
+        icon: Utensils,
+    },
     inventory: {
         title: 'Inventory / Contenedores',
         kicker: 'INVENTARIO',
@@ -236,6 +258,13 @@ const meta: Record<
         description:
             'Entradas, biomasa, frass, coproductos, evaporación y pérdidas.',
         icon: Scale,
+    },
+    maintenance: {
+        title: 'Mantenimiento y calibración',
+        kicker: 'FASE 1 · INGENIERÍA',
+        description:
+            'Activos, órdenes preventivas y correctivas, calibración, bloqueo y tiempo de paro.',
+        icon: Wrench,
     },
     audit: {
         title: 'Auditoría',
@@ -465,6 +494,7 @@ function ControlPanel({
     orderOperations?: Row[];
 }) {
     const [selected, setSelected] = useState(operations[0]?.id ?? 0);
+    const [inputScan, setInputScan] = useState('');
     const operation =
         operations.find((row) => row.id === selected) ?? operations[0];
     const compatible = containers.filter(
@@ -562,6 +592,31 @@ function ControlPanel({
                     </h2>
                     {operation.input_part && (
                         <>
+                            <label>
+                                Escanear contenedor
+                                <span className="scan-input">
+                                    <ScanLine />
+                                    <input
+                                        placeholder="Escanea o escribe el serial"
+                                        value={inputScan}
+                                        onChange={(e) => {
+                                            const serial = e.target.value;
+                                            setInputScan(serial);
+                                            const match = compatible.find(
+                                                (row) =>
+                                                    row.serial.toLowerCase() ===
+                                                    serial.trim().toLowerCase(),
+                                            );
+                                            if (match) {
+                                                form.setData(
+                                                    'input_container_id',
+                                                    String(match.id),
+                                                );
+                                            }
+                                        }}
+                                    />
+                                </span>
+                            </label>
                             <label>
                                 Contenedor
                                 <select
@@ -1168,6 +1223,7 @@ export default function Section({
             );
         if (section === 'nursery')
             return <Nursery batches={data.batches} events={data.events} />;
+        if (section === 'feeding') return <FeedingSection data={data} />;
         if (section === 'inventory')
             return (
                 <Inventory
@@ -1178,13 +1234,21 @@ export default function Section({
             );
         if (section === 'orders') return <OrdersSection data={data} />;
         if (section === 'trace') return <TraceSection data={data} />;
-        if (section === 'quality') return <QualitySection data={data} />;
+        if (section === 'quality')
+            return (
+                <div className="stack-xl">
+                    <QualitySection data={data} />
+                    <AdvancedQualitySection data={data} />
+                </div>
+            );
         if (section === 'environment')
             return <EnvironmentSection data={data} />;
         if (section === 'biosecurity')
             return <BiosecuritySection data={data} />;
         if (section === 'mass-balance')
             return <MassBalanceSection data={data} />;
+        if (section === 'maintenance')
+            return <MaintenanceSection data={data} />;
         if (section === 'audit') return <AuditSection data={data} />;
         if (section === 'continuity') return <ContinuitySection data={data} />;
         if (section === 'governance') return <GovernanceSection data={data} />;

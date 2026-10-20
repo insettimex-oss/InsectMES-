@@ -27,7 +27,7 @@ class MesWorkflowTest extends TestCase
 
     public function test_mes_sections_are_available_to_authenticated_users(): void
     {
-        foreach (['parts', 'routing', 'orders', 'control', 'nursery', 'inventory', 'trace', 'quality', 'environment', 'biosecurity', 'mass-balance', 'audit', 'continuity', 'governance', 'parameters', 'costs'] as $section) {
+        foreach (['parts', 'routing', 'orders', 'control', 'nursery', 'feeding', 'inventory', 'trace', 'quality', 'environment', 'biosecurity', 'mass-balance', 'maintenance', 'audit', 'continuity', 'governance', 'parameters', 'costs'] as $section) {
             $this->get("/mes/{$section}")->assertOk();
         }
     }
@@ -131,5 +131,76 @@ class MesWorkflowTest extends TestCase
         $order = ProductionOrder::latest('id')->firstOrFail();
         $this->post("/mes/mass-balance/{$order->id}", ['substrate_input' => 100, 'water_input' => 50, 'biomass_input' => 5, 'larvae_output' => 40, 'frass_output' => 60, 'coproduct_output' => 0, 'evaporation' => 50, 'waste' => 5, 'tolerance_percent' => 5])->assertRedirect();
         $this->assertDatabaseHas('mass_balances', ['production_order_id' => $order->id, 'status' => 'BALANCED']);
+    }
+
+    public function test_feeding_consumes_a_traced_substrate_lot(): void
+    {
+        $target = Container::where('serial', 'BSF000106')->firstOrFail();
+        $substrate = Container::where('serial', 'BSF000104')->firstOrFail();
+        $before = (float) $substrate->quantity_current;
+
+        $this->post('/mes/feeding', [
+            'target_container_id' => $target->id,
+            'substrate_container_id' => $substrate->id,
+            'quantity' => 12.5,
+            'dry_matter_percent' => 36,
+            'notes' => 'Ración de prueba por larvero',
+        ])->assertRedirect();
+
+        $this->assertSame($before - 12.5, (float) $substrate->fresh()->quantity_current);
+        $this->assertDatabaseHas('feeding_events', ['target_container_id' => $target->id, 'substrate_container_id' => $substrate->id, 'quantity' => 12.5]);
+        $this->assertDatabaseHas('inventory_movements', ['container_id' => $substrate->id, 'type' => 'FEEDING']);
+    }
+
+    public function test_quality_deviation_creates_capa_and_can_be_closed(): void
+    {
+        $container = Container::where('serial', 'BSF000106')->firstOrFail();
+        $this->post('/mes/quality/deviations', [
+            'container_id' => $container->id,
+            'source' => 'PROCESS',
+            'severity' => 'HIGH',
+            'title' => 'Crecimiento fuera de patrón',
+            'description' => 'El peso promedio quedó debajo del límite operativo.',
+            'immediate_action' => 'Aislar el larvero.',
+            'corrective_action' => 'Ajustar la ración y verificar en veinticuatro horas.',
+            'preventive_action' => 'Revisar el método de dosificación por turno.',
+            'due_at' => today()->addDays(3)->toDateString(),
+        ])->assertRedirect();
+
+        $deviation = DB::table('quality_deviations')->latest('id')->first();
+        $this->assertTrue($container->fresh()->quarantined);
+        $this->assertDatabaseCount('corrective_actions', 2);
+
+        $this->patch("/mes/quality/deviations/{$deviation->id}/close", [
+            'root_cause' => 'Variación del dosificador de sustrato.',
+            'disposition' => 'Larvero liberado después de recuperar el patrón.',
+            'effectiveness_result' => 'Peso verificado dentro del límite durante dos mediciones.',
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('quality_deviations', ['id' => $deviation->id, 'status' => 'CLOSED']);
+        $this->assertFalse($container->fresh()->quarantined);
+    }
+
+    public function test_maintenance_order_blocks_and_releases_an_asset(): void
+    {
+        $asset = DB::table('assets')->where('code', 'EQ-REA-01')->first();
+        $this->post('/mes/maintenance/work-orders', [
+            'asset_id' => $asset->id,
+            'type' => 'CORRECTIVE',
+            'priority' => 'CRITICAL',
+            'description' => 'Atender falla del sistema de dosificación.',
+            'scheduled_at' => now()->toDateTimeString(),
+        ])->assertRedirect();
+        $order = DB::table('maintenance_work_orders')->latest('id')->first();
+        $this->assertDatabaseHas('assets', ['id' => $asset->id, 'status' => 'BLOCKED']);
+
+        $this->patch("/mes/maintenance/work-orders/{$order->id}/complete", [
+            'result' => 'Sensor sustituido y prueba funcional aprobada.',
+            'downtime_minutes' => 42,
+            'next_due_at' => today()->addMonth()->toDateString(),
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('maintenance_work_orders', ['id' => $order->id, 'status' => 'COMPLETED', 'downtime_minutes' => 42]);
+        $this->assertDatabaseHas('assets', ['id' => $asset->id, 'status' => 'AVAILABLE']);
     }
 }

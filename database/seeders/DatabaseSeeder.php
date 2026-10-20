@@ -223,5 +223,27 @@ class DatabaseSeeder extends Seeder
                 'created_at' => now(), 'updated_at' => now(),
             ]);
         }
+
+        foreach ([
+            ['EQ-NUR-01', 'Incubadora de guardería', 'EQUIPMENT', 'WC-NUR', 'HIGH', 'Insetti', 'NUR-001', 30, null],
+            ['EQ-REA-01', 'Sistema de alimentación de engorda', 'EQUIPMENT', 'WC-REA', 'CRITICAL', 'Insetti', 'REA-001', 14, null],
+            ['INS-BAL-01', 'Báscula de proceso', 'INSTRUMENT', 'WC-REA', 'CRITICAL', 'Ohaus', 'BAL-001', null, 30],
+            ['INS-TH-01', 'Termohigrómetro de guardería', 'INSTRUMENT', 'WC-NUR', 'HIGH', 'Testo', 'TH-001', null, 30],
+        ] as [$code, $name, $type, $workCenter, $criticality, $manufacturer, $serial, $maintenanceDays, $calibrationDays]) {
+            DB::table('assets')->updateOrInsert(['code' => $code], [
+                'name' => $name,
+                'type' => $type,
+                'work_center_id' => WorkCenter::where('code', $workCenter)->value('id'),
+                'status' => 'AVAILABLE',
+                'criticality' => $criticality,
+                'manufacturer' => $manufacturer,
+                'serial_number' => $serial,
+                'next_maintenance_at' => $maintenanceDays ? today()->addDays($maintenanceDays) : null,
+                'calibration_due_at' => $calibrationDays ? today()->addDays($calibrationDays) : null,
+                'active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
     }
 }

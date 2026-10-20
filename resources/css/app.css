@@ -144,6 +144,52 @@
 }
 
 @layer components {
+    .brand-logo {
+        position: relative;
+        display: flex;
+        width: 100%;
+        height: 4rem;
+        align-items: center;
+        overflow: hidden;
+        border-radius: 0.6rem;
+        background: #f6f4ef;
+        padding: 0.35rem 0.55rem;
+    }
+    .brand-logo > img {
+        width: 8.8rem;
+        height: auto;
+        object-fit: contain;
+        object-position: left center;
+    }
+    .brand-logo-crop {
+        display: none;
+    }
+    .group[data-collapsible='icon'] .brand-logo > img {
+        display: none;
+    }
+    .group[data-collapsible='icon'] .brand-logo-crop {
+        position: relative;
+        display: block;
+        width: 2rem;
+        height: 2rem;
+        overflow: hidden;
+        border-radius: 0.45rem;
+        background: #f6f4ef;
+    }
+    .group[data-collapsible='icon'] .brand-logo {
+        height: 2rem;
+        border-radius: 0;
+        background: transparent;
+        padding: 0;
+    }
+    .group[data-collapsible='icon'] .brand-logo-crop img {
+        position: absolute;
+        top: -0.22rem;
+        left: 0;
+        width: 5.25rem;
+        max-width: none;
+        height: auto;
+    }
     .insect-sidebar [data-sidebar='group-label'] {
         color: rgb(213 228 220 / 0.68);
         font-size: 10px;
@@ -1025,6 +1071,60 @@
 }
 
 @layer components {
+    .stack-xl {
+        display: grid;
+        gap: 2rem;
+    }
+    .phase-metrics {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 1rem;
+    }
+    .phase-metric {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        align-items: center;
+        gap: 0.2rem 0.75rem;
+        min-height: 7.5rem;
+        border: 1px solid #dfe7e1;
+        border-radius: 0.85rem;
+        background: #fff;
+        padding: 1rem 1.1rem;
+    }
+    .phase-metric > svg {
+        grid-row: 1 / span 3;
+        width: 2rem;
+        height: 2rem;
+        color: #47815e;
+    }
+    .phase-metric span,
+    .phase-metric small {
+        color: #748178;
+        font-size: 0.72rem;
+    }
+    .phase-metric strong {
+        color: #254b36;
+        font-size: 1.35rem;
+        font-weight: 760;
+    }
+    .scan-input {
+        position: relative;
+        display: block;
+    }
+    .scan-input > svg {
+        position: absolute;
+        top: 50%;
+        left: 0.75rem;
+        z-index: 1;
+        width: 1rem;
+        height: 1rem;
+        color: #60806d;
+        transform: translateY(-50%);
+        pointer-events: none;
+    }
+    .scan-input > input {
+        padding-left: 2.25rem;
+    }
     .stack-lg {
         display: grid;
         gap: 1.25rem;
@@ -1542,12 +1642,25 @@
         color: #e1ece5 !important;
         box-shadow: 0 16px 38px rgb(0 0 0 / 42%) !important;
     }
+    .dark .phase-metric {
+        border-color: #294235;
+        background: #13221a;
+    }
+    .dark .phase-metric > svg,
+    .dark .phase-metric strong {
+        color: #9ad0ad;
+    }
+    .dark .phase-metric span,
+    .dark .phase-metric small {
+        color: #91a59a;
+    }
 }
 
 @media (max-width: 1100px) {
     .shortcut-grid,
     .stat-grid,
-    .cost-summary {
+    .cost-summary,
+    .phase-metrics {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
     .content-grid,
@@ -1580,6 +1693,7 @@
     .shortcut-grid,
     .stat-grid,
     .cost-summary,
+    .phase-metrics,
     .form-grid {
         grid-template-columns: 1fr;
     }

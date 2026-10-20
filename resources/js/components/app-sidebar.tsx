@@ -21,6 +21,8 @@ import {
     Sprout,
     Thermometer,
     Users,
+    Utensils,
+    Wrench,
 } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavMain } from '@/components/nav-main';
@@ -56,6 +58,7 @@ const groups: Array<{ label: string; items: NavItem[] }> = [
                 icon: Factory,
             },
             { title: 'Guardería', href: '/mes/nursery', icon: Sprout },
+            { title: 'Alimentación', href: '/mes/feeding', icon: Utensils },
         ],
     },
     {
@@ -94,6 +97,7 @@ const groups: Array<{ label: string; items: NavItem[] }> = [
             { title: 'Artículos', href: '/mes/parts', icon: Boxes },
             { title: 'Ubicaciones', href: '/mes/locations', icon: MapPin },
             { title: 'Operaciones', href: '/mes/operations', icon: Cog },
+            { title: 'Mantenimiento', href: '/mes/maintenance', icon: Wrench },
         ],
     },
     {
@@ -124,7 +128,11 @@ export function AppSidebar() {
             <SidebarHeader className="px-3 py-4">
                 <SidebarMenu>
                     <SidebarMenuItem>
-                        <SidebarMenuButton size="lg" asChild>
+                        <SidebarMenuButton
+                            size="lg"
+                            className="h-20 group-data-[collapsible=icon]:h-8!"
+                            asChild
+                        >
                             <Link href="/dashboard" prefetch>
                                 <AppLogo />
                             </Link>

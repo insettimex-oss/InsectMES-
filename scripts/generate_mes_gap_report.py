@@ -25,6 +25,7 @@ from reportlab.platypus import (
 
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / "output" / "pdf" / "diagnostico_y_roadmap_insectmes_bsf.pdf"
+BRAND_LOGO = ROOT / "public" / "images" / "insetti-logo.png"
 
 GREEN = colors.HexColor("#88C63E")
 DARK_GREEN = colors.HexColor("#173D2E")
@@ -290,12 +291,13 @@ def first_page(canvas, doc):
     canvas.circle(width - 22 * mm, height - 22 * mm, 29 * mm, fill=1, stroke=0)
     canvas.setFillColor(colors.HexColor("#2A5E47"))
     canvas.circle(width - 8 * mm, 18 * mm, 41 * mm, fill=1, stroke=0)
-    canvas.setFillColor(WHITE)
-    canvas.setFont(FONT_BOLD, 16)
-    canvas.drawString(22 * mm, height - 22 * mm, "INSETTI")
+    canvas.setFillColor(colors.HexColor("#F6F4EF"))
+    canvas.roundRect(19 * mm, height - 39 * mm, 63 * mm, 25 * mm, 3 * mm, fill=1, stroke=0)
+    if BRAND_LOGO.exists():
+        canvas.drawImage(str(BRAND_LOGO), 22 * mm, height - 36 * mm, width=56 * mm, height=20 * mm, preserveAspectRatio=True, mask="auto", anchor="c")
     canvas.setFillColor(colors.HexColor("#D0E8D9"))
     canvas.setFont(FONT, 8)
-    canvas.drawString(22 * mm, 17 * mm, "Documento de trabajo - 15 octubre 2026")
+    canvas.drawString(22 * mm, 17 * mm, "Documento de trabajo - 20 octubre 2026")
     canvas.restoreState()
 
 
@@ -658,14 +660,14 @@ def build_story() -> list:
 
 
 def build_updated_story() -> list:
-    """Estado posterior a la implementación de Fase 0 y brechas P0."""
+    """Estado posterior a la implementación técnica de Fase 1."""
     story: list = [
         Spacer(1, 50 * mm),
-        P("Estado posterior a Fase 0 y P0", "CoverTitle"),
+        P("Estado posterior a Fase 1 técnica", "CoverTitle"),
         P("InsectMES para mosca soldado negro", "CoverTitle"),
         Spacer(1, 4 * mm),
         P(
-            "Actualización del diagnóstico: capacidades implementadas, validaciones aún requeridas y hoja de ruta restante para una operación industrial de Hermetia illucens.",
+            "Actualización del diagnóstico: control de alimentación, calidad avanzada inicial y mantenimiento incorporados; brechas restantes para una operación industrial de Hermetia illucens.",
             "CoverSub",
         ),
         Spacer(1, 18 * mm),
@@ -673,12 +675,12 @@ def build_updated_story() -> list:
             [
                 [P("RESULTADO", "TableHeader"), P("SIGUIENTE META", "TableHeader")],
                 [
-                    Paragraph("P0 funcional implementado", ParagraphStyle("coverUpdated", fontName=FONT_BOLD, fontSize=17, textColor=WHITE)),
-                    Paragraph("Validación y escalamiento", ParagraphStyle("coverNext", fontName=FONT_BOLD, fontSize=17, textColor=WHITE)),
+                    Paragraph("Fase 1 técnica implementada", ParagraphStyle("coverUpdated", fontName=FONT_BOLD, fontSize=17, textColor=WHITE)),
+                    Paragraph("Validación e integración", ParagraphStyle("coverNext", fontName=FONT_BOLD, fontSize=17, textColor=WHITE)),
                 ],
                 [
-                    P("Control digital de lote, calidad, ambiente, bioseguridad, masa, auditoría y respaldo.", "CoverSub"),
-                    P("Aprobación de negocio, integración, confiabilidad industrial y optimización.", "CoverSub"),
+                    P("Alimentación por lote, captura por serial, desviaciones/CAPA, activos, calibración y órdenes de mantenimiento.", "CoverSub"),
+                    P("Piloto real, COA/LIMS, OEE, ERP/planta conectada, alta disponibilidad y cumplimiento aprobado.", "CoverSub"),
                 ],
             ],
             colWidths=[78 * mm, 78 * mm],
@@ -701,12 +703,12 @@ def build_updated_story() -> list:
     story += [
         P("1. Estado ejecutivo actualizado", "H1x"),
         P(
-            "InsectMES ya incorpora las brechas prioritarias P0 como funciones operativas y deja de ser únicamente un prototipo de inventario y producción. Ahora dispone de órdenes con ruta, ejecución enlazada, control de calidad, trazabilidad de división y fusión, registros ambientales, bioseguridad, balance de masa, auditoría y respaldo SQLite verificado.",
+            "InsectMES conserva el núcleo P0 y suma una Fase 1 técnica: alimentación trazable con consumo de inventario, captura por serial compatible con lector, desviaciones con CAPA y cuarentena, así como activos, calibración, bloqueo y órdenes preventivas/correctivas con tiempo de paro.",
             "Callout",
         ),
         Table(
             [[
-                maturity_card("Madurez técnica", "3 / 5", "MES funcional para piloto controlado, con evidencia digital y pruebas automatizadas.", GREEN),
+                maturity_card("Madurez técnica", "3.5 / 5", "MES funcional para piloto, con control de lote, calidad avanzada inicial y mantenimiento.", GREEN),
                 maturity_card("Madurez de negocio", "2.5 / 5", "La URS, trazabilidad y criterios regulatorios aún requieren aprobación formal.", AMBER),
             ]],
             colWidths=[82 * mm, 82 * mm],
@@ -715,11 +717,11 @@ def build_updated_story() -> list:
         ),
         P("Dictamen", "H2x"),
         P(
-            "Puede utilizarse como MES de piloto para una línea BSF definida. Aún no debe declararse MES industrial completo para toda la empresa porque faltan validación formal, integración automática, mantenimiento, OEE, costos reales, alta disponibilidad y evidencia regulatoria por producto y mercado.",
+            "Puede utilizarse como MES de piloto para una línea BSF definida. Aún no debe declararse MES industrial completo para toda la empresa porque faltan validación formal con lotes reales, COA/LIMS, OEE, planificación finita, integraciones automáticas, costos reales, alta disponibilidad y evidencia regulatoria por producto y mercado.",
         ),
         P("Validación técnica ejecutada", "H2x"),
         *bullets([
-            "48 pruebas automatizadas y 188 aserciones aprobadas.",
+            "51 pruebas automatizadas y 205 aserciones aprobadas.",
             "Análisis estático PHP sin errores y compilación de React/TypeScript satisfactoria.",
             "Migración SQLite y datos iniciales reproducibles.",
             "Respaldo real con checksum SHA-256 e integrity_check satisfactorio.",
@@ -738,9 +740,12 @@ def build_updated_story() -> list:
         ["Balance de masa", "Sustrato, agua, biomasa, larva, frass, coproducto, evaporación, residuo y tolerancia.", "Implementado"],
         ["Auditoría", "Eventos append-only con usuario, fecha, entidad, antes/después, razón, IP y agente.", "Implementado"],
         ["Continuidad SQLite", "Respaldo programado y manual, checksum, integridad, retención y registro de ejecución.", "Implementado"],
+        ["Alimentación y escaneo", "Larvero y sustrato por serial, consumo de inventario, materia seca, orden, operador y bitácora auditable.", "Implementado F1"],
+        ["Desviaciones y CAPA", "Contención, cuarentena, causa raíz, acciones correctiva/preventiva, responsable, vencimiento y efectividad.", "Implementado F1"],
+        ["Mantenimiento", "Activos, criticidad, preventivo, correctivo, calibración, bloqueo, liberación y minutos de paro.", "Implementado F1"],
     ]
     story += [
-        P("2. Capacidades P0 implementadas", "H1x"),
+        P("2. Capacidades P0 y Fase 1 implementadas", "H1x"),
         P("Estas capacidades se retiran de la lista de brechas pendientes porque ya cuentan con modelo de datos, reglas de negocio, interfaz y cobertura de pruebas."),
         table(["Dominio", "Evidencia funcional", "Estado"], implemented_rows, [39 * mm, 99 * mm, 26 * mm]),
         P("Límite de la afirmación", "H2x"),
@@ -753,8 +758,9 @@ def build_updated_story() -> list:
 
     remaining_rows = [
         ["Aprobación Fase 0", "Firmar URS, mapa, riesgos, método de medición y modelo de lote; cerrar observaciones por área.", "P0 de gobierno"],
-        ["Calidad avanzada", "COA, desviaciones, CAPA, estabilidad, microbiología/química, retención de muestras y flujo LIMS.", "P1"],
-        ["Mantenimiento", "Activos, preventivos, correctivos, repuestos, calibración, MTBF, MTTR y bloqueo de equipo.", "P1"],
+        ["Piloto y aprobación", "Ejecutar lotes reales, pruebas por rol, recall, restauración y aprobación formal con evidencia.", "P0 de negocio"],
+        ["Calidad avanzada restante", "COA, estabilidad, microbiología/química, retención de muestras e integración LIMS.", "P1"],
+        ["Mantenimiento restante", "Repuestos, planes por contador/condición, habilidades, MTBF, MTTR y monitoreo predictivo.", "P1"],
         ["OEE y paros", "Calendario de turno, causas, microparos, velocidad ideal, disponibilidad, desempeño y calidad.", "P1"],
         ["Planificación avanzada", "Capacidad finita, campañas, turnos, recursos, restricciones biológicas y secuenciación.", "P1"],
         ["Integraciones", "ERP, básculas, PLC/SCADA, sensores MQTT/OPC UA, impresoras, laboratorio y almacenes.", "P1"],
@@ -766,7 +772,7 @@ def build_updated_story() -> list:
     ]
     story += [
         P("3. Brechas que aún faltan", "H1x"),
-        P("La lista ya no contiene las funciones P0 implementadas. Conserva únicamente validación, industrialización y capacidades de escalamiento."),
+        P("La lista retira alimentación/escaneo, desviaciones/CAPA, activos, calibración y órdenes de mantenimiento. Conserva únicamente validación real, extensiones industriales e integración."),
         table(["Dominio", "Trabajo pendiente", "Prioridad"], remaining_rows, [39 * mm, 99 * mm, 26 * mm]),
         PageBreak(),
     ]
@@ -828,7 +834,7 @@ def build_updated_story() -> list:
     roadmap_rows = [
         ["Cierre Fase 0", "2-4 semanas", "Talleres, firma URS/lote, dueños de datos, riesgo residual y alcance del piloto.", "Paquete aprobado"],
         ["Piloto validado", "4-8 semanas", "Lotes reales, pruebas de usuario, recall, desviaciones controladas y restauración.", "Un lote sin registros paralelos críticos"],
-        ["Calidad y mantenimiento", "6-10 semanas", "COA, desviaciones, CAPA, activos, calibración y órdenes de mantenimiento.", "Liberación y disponibilidad controladas"],
+        ["Cierre Fase 1 industrial", "6-10 semanas", "COA/LIMS, muestras, repuestos, mantenimiento por condición, turnos, paros y OEE.", "Liberación y disponibilidad conciliadas"],
         ["Planta conectada", "8-14 semanas", "Sensores, básculas, PLC/SCADA, alarmas, colas, OEE y monitoreo.", "Datos automáticos conciliados"],
         ["ERP y escalamiento", "8-14 semanas", "Demanda, compras, costos reales, logística, PostgreSQL y HA.", "Cierre sin doble captura"],
         ["Optimización", "Continuo", "SPC, predicción de cosecha, receta, energía, capacidad y analítica.", "Mejora medible"],
@@ -843,7 +849,7 @@ def build_updated_story() -> list:
             "Crear guiones de prueba por rol y capacitar operadores y supervisores.",
             "Ejecutar trazabilidad, cuarentena, alarma, bioseguridad, masa y recuperación.",
             "Definir RPO/RTO, copia externa y decisión de migración a PostgreSQL.",
-            "Acordar alcance de calidad avanzada, mantenimiento e interfaces de Fase 1.",
+            "Validar en piso alimentación por serial, CAPA, bloqueo de activos y calibración con responsables reales.",
         ]),
         P("Decisión recomendada", "H2x"),
         P(
@@ -868,14 +874,14 @@ def build_updated_story() -> list:
         ]),
         Spacer(1, 5 * mm),
         P(
-            "Conclusión: InsectMES ya cubre el núcleo P0 de control del lote. La brecha principal dejó de ser la ausencia de transacciones y pasó a ser la validación formal, la integración con planta y empresa, y la confiabilidad industrial.",
+            "Conclusión: InsectMES ya cubre el núcleo P0 y la base técnica de Fase 1 para alimentación, CAPA y mantenimiento. La brecha principal es ahora la validación formal en planta, las extensiones industriales y la integración con sistemas y equipos externos.",
             "Callout",
         ),
         P("Documentos entregados", "H2x"),
         *bullets([
             "Aplicación Laravel + React con SQLite, Lucide React y sidebar retraíble.",
             "Paquete Fase 0 versionado en docs/phase-0.",
-            "Pruebas de flujos P0 y comandos de continuidad.",
+            "Pruebas de flujos P0/Fase 1 y comandos de continuidad.",
             "Este diagnóstico actualizado con únicamente las brechas restantes.",
         ]),
         Spacer(1, 7 * mm),
@@ -898,9 +904,9 @@ def main() -> None:
         leftMargin=18 * mm,
         topMargin=20 * mm,
         bottomMargin=17 * mm,
-        title="Estado posterior a Fase 0 y P0 - InsectMES BSF",
+        title="Estado posterior a Fase 1 técnica - InsectMES BSF",
         author="Insetti",
-        subject="Capacidades implementadas, brechas restantes y recomendaciones de industrialización",
+        subject="Fase 1 técnica implementada, brechas restantes y recomendaciones de industrialización",
     )
     document.build(build_updated_story(), onFirstPage=first_page, onLaterPages=later_pages)
     print(OUTPUT)

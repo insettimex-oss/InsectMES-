@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\MesController;
 use App\Http\Controllers\MesP0Controller;
+use App\Http\Controllers\MesPhaseOneController;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/dashboard')->name('home');
@@ -27,6 +28,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('mes/biosecurity/events/{event}/close', [MesP0Controller::class, 'closeBiosecurity'])->name('mes.biosecurity.close');
     Route::post('mes/mass-balance/{order}', [MesP0Controller::class, 'closeMassBalance'])->name('mes.mass-balance.close');
     Route::post('mes/continuity/backup', [MesP0Controller::class, 'runBackup'])->name('mes.continuity.backup');
+    Route::post('mes/feeding', [MesPhaseOneController::class, 'recordFeeding'])->name('mes.feeding.store');
+    Route::post('mes/quality/deviations', [MesPhaseOneController::class, 'createDeviation'])->name('mes.quality.deviations.store');
+    Route::patch('mes/quality/deviations/{deviation}/close', [MesPhaseOneController::class, 'closeDeviation'])->name('mes.quality.deviations.close');
+    Route::post('mes/maintenance/assets', [MesPhaseOneController::class, 'createAsset'])->name('mes.maintenance.assets.store');
+    Route::post('mes/maintenance/work-orders', [MesPhaseOneController::class, 'createWorkOrder'])->name('mes.maintenance.orders.store');
+    Route::patch('mes/maintenance/work-orders/{workOrder}/complete', [MesPhaseOneController::class, 'completeWorkOrder'])->name('mes.maintenance.orders.complete');
 });
 
 require __DIR__.'/settings.php';

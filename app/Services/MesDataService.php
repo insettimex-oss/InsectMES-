@@ -26,6 +26,8 @@ class MesDataService
                 ['label' => 'Cuarentenas', 'value' => Container::where('quarantined', true)->count(), 'detail' => 'Requieren disposición'],
                 ['label' => 'Alarmas ambientales', 'value' => DB::table('environmental_readings')->where('alarm_status', 'OPEN')->count(), 'detail' => 'Fuera de límites'],
                 ['label' => 'Bioseguridad abierta', 'value' => DB::table('biosecurity_events')->where('status', 'OPEN')->count(), 'detail' => 'Acción requerida'],
+                ['label' => 'CAPA abiertas', 'value' => DB::table('quality_deviations')->where('status', '!=', 'CLOSED')->count(), 'detail' => 'Desviaciones activas'],
+                ['label' => 'Activos bloqueados', 'value' => DB::table('assets')->where('status', 'BLOCKED')->count(), 'detail' => 'Mantenimiento requerido'],
             ],
             'recentRuns' => DB::table('production_runs as r')
                 ->join('operations as o', 'o.id', '=', 'r.operation_id')
@@ -51,12 +53,14 @@ class MesDataService
             'orders' => $this->orders(),
             'control' => ['operations' => Operation::with(['workCenter', 'inputPart', 'outputPart'])->where('active', true)->orderBy('sort_order')->get(), 'containers' => Container::with(['part', 'location'])->where('active', true)->where('quarantined', false)->where('quantity_current', '>', 0)->orderBy('serial')->get(), 'orderOperations' => DB::table('production_order_operations as po')->join('production_orders as p', 'p.id', '=', 'po.production_order_id')->join('operations as o', 'o.id', '=', 'po.operation_id')->leftJoin('work_instructions as wi', 'wi.id', '=', 'po.work_instruction_id')->whereIn('p.status', ['RELEASED', 'IN_PROGRESS'])->whereIn('po.status', ['READY', 'IN_PROGRESS'])->orderBy('p.priority')->orderBy('po.sequence')->get(['po.id', 'po.production_order_id', 'po.operation_id', 'po.status', 'po.sequence', 'p.number as order_number', 'p.priority', 'o.code as operation_code', 'o.name as operation_name', 'wi.title as instruction_title', 'wi.steps as instruction_steps'])],
             'nursery' => ['batches' => NurseryBatch::with('container.part')->whereNull('closed_at')->orderBy('level')->get(), 'events' => DB::table('nursery_events as e')->join('nursery_batches as b', 'b.id', '=', 'e.nursery_batch_id')->join('containers as c', 'c.id', '=', 'b.container_id')->leftJoin('users as u', 'u.id', '=', 'e.user_id')->orderByDesc('e.occurred_at')->limit(15)->get(['e.id', 'e.occurred_at', 'c.serial', 'e.action', 'e.notes', 'u.name as operator'])],
+            'feeding' => $this->feeding(),
             'inventory' => ['containers' => Container::with(['part', 'location'])->orderByDesc('active')->orderBy('serial')->get(), 'parts' => Part::where('active', true)->orderBy('code')->get(), 'locations' => DB::table('locations')->where('active', true)->orderBy('code')->get()],
             'trace' => ['events' => DB::table('genealogy_events as g')->leftJoin('containers as p', 'p.id', '=', 'g.parent_container_id')->join('containers as c', 'c.id', '=', 'g.child_container_id')->leftJoin('operations as o', 'o.id', '=', 'g.operation_id')->leftJoin('production_orders as po', 'po.id', '=', 'g.production_order_id')->orderByDesc('g.occurred_at')->get(['g.id', 'g.event_group', 'g.occurred_at', 'p.serial as parent', 'c.serial as child', 'o.name as operation', 'po.number as production_order', 'g.action', 'g.quantity', 'g.unit', 'g.reason']), 'containers' => Container::with(['part', 'location'])->where('active', true)->where('quarantined', false)->orderBy('serial')->get()],
             'quality' => $this->quality(),
             'environment' => $this->environment(),
             'biosecurity' => $this->biosecurity(),
             'mass-balance' => ['orders' => ProductionOrder::with(['part', 'massBalance'])->whereNotIn('status', ['CANCELLED'])->orderByDesc('created_at')->get()],
+            'maintenance' => $this->maintenance(),
             'audit' => ['auditEvents' => DB::table('audit_events as a')->leftJoin('users as u', 'u.id', '=', 'a.user_id')->orderByDesc('a.occurred_at')->limit(250)->get(['a.id', 'a.occurred_at', 'a.event', 'a.auditable_type', 'a.auditable_id', 'a.reason', 'a.ip_address', 'u.name as user'])],
             'continuity' => ['backupRuns' => DB::table('backup_runs')->orderByDesc('started_at')->limit(30)->get(), 'database' => basename((string) config('database.connections.sqlite.database')), 'schedule' => 'Diario 02:00', 'retention' => '14 días'],
             'governance' => ['documents' => $this->governanceDocuments()],
@@ -84,6 +88,30 @@ class MesDataService
             'qualityInspections' => DB::table('quality_inspections as q')->join('quality_specifications as s', 's.id', '=', 'q.quality_specification_id')->leftJoin('containers as c', 'c.id', '=', 'q.container_id')->leftJoin('production_orders as po', 'po.id', '=', 'q.production_order_id')->leftJoin('users as u', 'u.id', '=', 'q.inspected_by')->orderByDesc('q.occurred_at')->get(['q.id', 'q.number', 'q.occurred_at', 's.code as specification', 's.characteristic', 'q.result_value', 's.unit', 'q.status', 'q.disposition', 'c.serial as container', 'po.number as production_order', 'u.name as inspector']),
             'containers' => Container::with('part')->where('active', true)->orderBy('serial')->get(),
             'orders' => ProductionOrder::whereNotIn('status', ['CANCELLED'])->orderByDesc('created_at')->get(),
+            'qualityDeviations' => DB::table('quality_deviations as d')->leftJoin('production_orders as po', 'po.id', '=', 'd.production_order_id')->leftJoin('containers as c', 'c.id', '=', 'd.container_id')->leftJoin('users as u', 'u.id', '=', 'd.owner_id')->orderByRaw("CASE d.status WHEN 'CLOSED' THEN 2 ELSE 1 END")->orderByDesc('d.created_at')->get(['d.id', 'd.number', 'd.source', 'd.severity', 'd.status', 'd.title', 'd.description', 'd.root_cause', 'd.disposition', 'd.due_at', 'd.closed_at', 'po.number as production_order', 'c.serial as container', 'u.name as owner']),
+            'correctiveActions' => DB::table('corrective_actions as a')->join('quality_deviations as d', 'd.id', '=', 'a.quality_deviation_id')->leftJoin('users as u', 'u.id', '=', 'a.owner_id')->orderBy('a.due_at')->get(['a.id', 'a.quality_deviation_id', 'd.number as deviation', 'a.type', 'a.description', 'a.status', 'a.due_at', 'a.effectiveness_result', 'u.name as owner']),
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function feeding(): array
+    {
+        return [
+            'feedingEvents' => DB::table('feeding_events as f')->join('containers as t', 't.id', '=', 'f.target_container_id')->join('containers as s', 's.id', '=', 'f.substrate_container_id')->leftJoin('production_orders as po', 'po.id', '=', 'f.production_order_id')->leftJoin('users as u', 'u.id', '=', 'f.recorded_by')->orderByDesc('f.occurred_at')->limit(200)->get(['f.id', 'f.occurred_at', 't.serial as target', 's.serial as substrate', 'f.quantity', 'f.unit', 'f.dry_matter_percent', 'f.notes', 'po.number as production_order', 'u.name as operator']),
+            'targetContainers' => Container::with('part')->where('active', true)->where('quarantined', false)->whereHas('part', fn ($query) => $query->whereIn('type', ['WIP', 'Biológico']))->orderBy('serial')->get(),
+            'substrateContainers' => Container::with('part')->where('active', true)->where('quarantined', false)->where('quantity_current', '>', 0)->whereHas('part', fn ($query) => $query->whereIn('type', ['Materia Prima', 'Material']))->orderBy('serial')->get(),
+            'orders' => ProductionOrder::whereIn('status', ['RELEASED', 'IN_PROGRESS'])->orderBy('scheduled_start')->get(),
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function maintenance(): array
+    {
+        return [
+            'assets' => DB::table('assets as a')->leftJoin('work_centers as w', 'w.id', '=', 'a.work_center_id')->leftJoin('locations as l', 'l.id', '=', 'a.location_id')->where('a.active', true)->orderByRaw("CASE a.status WHEN 'BLOCKED' THEN 1 WHEN 'MAINTENANCE' THEN 2 ELSE 3 END")->orderBy('a.code')->get(['a.id', 'a.code', 'a.name', 'a.type', 'a.status', 'a.criticality', 'a.manufacturer', 'a.serial_number', 'a.next_maintenance_at', 'a.calibration_due_at', 'w.code as work_center', 'l.code as location']),
+            'workOrders' => DB::table('maintenance_work_orders as m')->join('assets as a', 'a.id', '=', 'm.asset_id')->leftJoin('users as u', 'u.id', '=', 'm.assigned_to')->orderByRaw("CASE m.status WHEN 'COMPLETED' THEN 2 ELSE 1 END")->orderByDesc('m.created_at')->get(['m.id', 'm.number', 'a.code as asset', 'a.name as asset_name', 'm.type', 'm.priority', 'm.status', 'm.description', 'm.scheduled_at', 'm.completed_at', 'm.downtime_minutes', 'm.result', 'u.name as technician']),
+            'workCenters' => WorkCenter::where('active', true)->orderBy('code')->get(),
+            'locations' => DB::table('locations')->where('active', true)->orderBy('code')->get(),
         ];
     }
 

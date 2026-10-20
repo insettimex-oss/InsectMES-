@@ -44,10 +44,7 @@ export default function Dashboard({
                     <div>
                         <p className="eyebrow">INSETTI · OPERACIÓN BSF</p>
                         <h1>Centro de operación</h1>
-                        <p>
-                            Planifica, ejecuta y controla el proceso completo
-                            
-                        </p>
+                        <p>Planifica, ejecuta y controla el proceso completo</p>
                     </div>
                     <div className="hero-mark">
                         <span>Insect</span>MES
