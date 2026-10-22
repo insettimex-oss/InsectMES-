@@ -19,6 +19,8 @@
 
 - Fechas con zona horaria de planta; cantidades decimales; validación de integridad referencial; interfaz clara en modo claro y oscuro; pruebas automatizadas; respaldo diario con retención; errores accionables; exportación futura sin pérdida de identidad.
 
-## Aprobación pendiente
+## Estado de aprobación
 
-Operaciones, Calidad, Bioseguridad, TI y Dirección deben aceptar o modificar cada requisito antes de congelar la versión 1.0.
+La aprobación de la URS por Operaciones, Calidad, Bioseguridad, TI y Dirección fue confirmada como **completada**. No se requiere una nueva aprobación.
+
+La evidencia disponible en esta carpeta no incluye los metadatos necesarios para verificar documentalmente el cierre. Deben transcribirse desde las actas o firmas existentes en el registro `08-approval-register.md`: nombre del aprobador, cargo, versión aprobada, fecha de aprobación y referencia o ubicación de la evidencia. Hasta incorporar esos datos, la URS está aprobada con registro documental incompleto y no debe declararse congelada como versión 1.0.

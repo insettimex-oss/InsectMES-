@@ -118,7 +118,7 @@ class MesIndustrialController extends Controller
 
     public function approveCertificate(Request $request, int $certificate): RedirectResponse
     {
-        abort_unless(in_array($request->user()->role, ['admin', 'supervisor'], true), 403);
+        abort_unless($request->user()->hasPermission('quality.approve'), 403);
         DB::transaction(function () use ($request, $certificate): void {
             $row = DB::table('certificates_of_analysis')->where('id', $certificate)->lockForUpdate()->first();
             if (! $row || $row->status !== 'DRAFT') {

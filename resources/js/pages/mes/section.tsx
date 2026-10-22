@@ -26,6 +26,11 @@ import {
     Utensils,
     Wrench,
     Gauge,
+    Pause,
+    Play,
+    RotateCcw,
+    Timer,
+    TriangleAlert,
 } from 'lucide-react';
 import { MesRecordDialog } from '@/components/mes-record-dialog';
 import {
@@ -49,6 +54,16 @@ import {
     PerformanceSection,
     QualityReleaseSection,
 } from '@/pages/mes/industrial-sections';
+import {
+    LaboratorySection,
+    MaintenanceConditionSection,
+} from '@/pages/mes/advanced-sections';
+import {
+    UserAdministration,
+    type AccessPermission,
+    type AccessRole,
+    type UserAccount,
+} from '@/pages/mes/user-administration';
 
 type Part = {
     id: number;
@@ -128,6 +143,11 @@ type SectionData = {
     events?: Row[];
     orders?: Row[];
     orderOperations?: Row[];
+    executionSessions?: Row[];
+    checklistItems?: Row[];
+    scrapReasons?: Row[];
+    recentScrap?: Row[];
+    shopFloorSummary?: Record<string, string | number>;
     qualitySpecifications?: Row[];
     qualityInspections?: Row[];
     environmentalLimits?: Row[];
@@ -150,13 +170,20 @@ type SectionData = {
     retentionSamples?: Row[];
     spareParts?: Row[];
     spareUsages?: Row[];
+    laboratoryMethods?: Row[];
+    laboratorySamples?: Row[];
+    laboratoryResults?: Row[];
+    conditionReadings?: Row[];
+    maintenanceKpis?: Record<string, unknown>;
     auditEvents?: Row[];
     backupRuns?: Row[];
     documents?: Row[];
     database?: string;
     schedule?: string;
     retention?: string;
-    users?: Row[];
+    users?: UserAccount[];
+    roles?: AccessRole[];
+    permissions?: AccessPermission[];
     costs?: Array<{
         operation: string;
         material: number;
@@ -320,9 +347,9 @@ const meta: Record<
         icon: FlaskConical,
     },
     users: {
-        title: 'Usuarios',
+        title: 'Usuarios y accesos',
         kicker: 'SEGURIDAD',
-        description: 'Cuentas administradas por el starter kit de Laravel.',
+        description: 'Roles por área y permisos efectivos de cada cuenta.',
         icon: Users,
     },
 };
@@ -482,27 +509,6 @@ function MasterTable({
                 />
             </DataCard>
         );
-    if (section === 'users')
-        return (
-            <DataCard title="Usuarios registrados">
-                <Table
-                    headers={[
-                        'Nombre',
-                        'Correo',
-                        'Rol',
-                        'Compañía',
-                        'Verificado',
-                    ]}
-                    rows={(data.users ?? []).map((x) => [
-                        x.name,
-                        x.email,
-                        x.role,
-                        x.company,
-                        x.email_verified_at ? 'Sí' : 'No',
-                    ])}
-                />
-            </DataCard>
-        );
     return null;
 }
 
@@ -510,15 +516,60 @@ function ControlPanel({
     operations = [],
     containers = [],
     orderOperations = [],
+    executionSessions = [],
+    checklistItems = [],
+    scrapReasons = [],
+    recentScrap = [],
+    shopFloorSummary = {},
 }: {
     operations?: Operation[];
     containers?: Container[];
     orderOperations?: Row[];
+    executionSessions?: Row[];
+    checklistItems?: Row[];
+    scrapReasons?: Row[];
+    recentScrap?: Row[];
+    shopFloorSummary?: Record<string, string | number>;
 }) {
-    const [selected, setSelected] = useState(operations[0]?.id ?? 0);
+    const firstJob =
+        orderOperations.find((row) => row.status === 'IN_PROGRESS') ??
+        orderOperations.find((row) => row.status === 'READY') ??
+        orderOperations[0];
+    const [selectedJobId, setSelectedJobId] = useState(
+        firstJob ? String(firstJob.id) : '',
+    );
+    const initialOperation = firstJob?.operation_id
+        ? Number(firstJob.operation_id)
+        : (operations[0]?.id ?? 0);
+    const [selected, setSelected] = useState(initialOperation);
     const [inputScan, setInputScan] = useState('');
+    const [pauseOpen, setPauseOpen] = useState(false);
+    const [scrapOpen, setScrapOpen] = useState(false);
     const operation =
         operations.find((row) => row.id === selected) ?? operations[0];
+    const currentJob = orderOperations.find(
+        (row) => String(row.id) === selectedJobId,
+    );
+    const currentSession = executionSessions.find(
+        (row) => String(row.production_order_operation_id) === selectedJobId,
+    );
+    const currentChecklist = checklistItems.filter(
+        (row) => String(row.production_order_operation_id) === selectedJobId,
+    );
+    const instructionSteps = (() => {
+        if (!currentJob?.instruction_steps) return [] as string[];
+        try {
+            const parsed = JSON.parse(String(currentJob.instruction_steps));
+            return Array.isArray(parsed)
+                ? parsed.map((item) => String(item))
+                : [];
+        } catch {
+            return [] as string[];
+        }
+    })();
+    const checklistComplete =
+        currentChecklist.length > 0 &&
+        currentChecklist.every((row) => Boolean(row.completed));
     const compatible = containers.filter(
         (row) =>
             !operation?.input_part || row.part.id === operation.input_part.id,
@@ -529,14 +580,37 @@ function ControlPanel({
         quantity_in: '',
         quantity_out: '',
         notes: '',
-        production_order_id: '',
-        production_order_operation_id: '',
+        production_order_id: firstJob
+            ? String(firstJob.production_order_id)
+            : '',
+        production_order_operation_id: firstJob ? String(firstJob.id) : '',
+    });
+    const pause = useForm({ reason: '' });
+    const scrap = useForm({
+        production_execution_session_id: '',
+        scrap_reason_code_id: '',
+        container_id: '',
+        quantity: '',
+        unit: operation?.output_part.unit ?? 'kg',
+        notes: '',
     });
     if (!operation) return <Empty text="No hay operaciones configuradas." />;
     const choose = (id: number) => {
         setSelected(id);
         form.setData('operation_id', id);
         form.setData('input_container_id', '');
+    };
+    const chooseJob = (job: Row | undefined) => {
+        if (!job) {
+            setSelectedJobId('');
+            form.setData('production_order_operation_id', '');
+            form.setData('production_order_id', '');
+            return;
+        }
+        setSelectedJobId(String(job.id));
+        form.setData('production_order_operation_id', String(job.id));
+        form.setData('production_order_id', String(job.production_order_id));
+        choose(Number(job.operation_id));
     };
     const submit = (event: FormEvent) => {
         event.preventDefault();
@@ -545,199 +619,610 @@ function ControlPanel({
             onSuccess: () => form.reset('quantity_in', 'quantity_out', 'notes'),
         });
     };
+    const statusClass = (value: unknown) =>
+        `status-pill status-${String(value).toLowerCase().replaceAll('_', '-')}`;
+    const canProduce =
+        !currentJob ||
+        (currentSession?.status === 'RUNNING' && checklistComplete);
     return (
         <div className="control-workspace">
-            <section className="execution-context">
-                <div>
-                    <p className="eyebrow">AUTORIZACIÓN DE TRABAJO</p>
-                    <h2>Orden e instrucción vigente</h2>
-                </div>
-                <label>
-                    Operación liberada
-                    <select
-                        value={form.data.production_order_operation_id}
-                        onChange={(e) => {
-                            const selectedOrder = orderOperations.find(
-                                (x) => String(x.id) === e.target.value,
-                            );
-                            form.setData(
-                                'production_order_operation_id',
-                                e.target.value,
-                            );
-                            form.setData(
-                                'production_order_id',
-                                String(
-                                    selectedOrder?.production_order_id ?? '',
-                                ),
-                            );
-                            if (selectedOrder?.operation_id) {
-                                choose(Number(selectedOrder.operation_id));
-                            }
-                        }}
-                    >
-                        <option value="">Captura sin orden (excepción)</option>
-                        {orderOperations.map((x) => (
-                            <option value={String(x.id)} key={String(x.id)}>
-                                {x.order_number} · {x.operation_code} ·{' '}
-                                {x.status}
-                            </option>
-                        ))}
-                    </select>
-                </label>
-                <p>
-                    {orderOperations.find(
-                        (x) =>
-                            String(x.id) ===
-                            form.data.production_order_operation_id,
-                    )?.instruction_title ??
-                        'Seleccione una operación liberada para cargar su instrucción.'}
-                </p>
-            </section>
-            <div className="process-pills">
-                {operations.map((row) => (
-                    <button
-                        key={row.id}
-                        className={row.id === operation.id ? 'active' : ''}
-                        onClick={() => choose(row.id)}
-                    >
-                        {row.name}
-                    </button>
-                ))}
+            <div className="shop-floor-metrics">
+                <article>
+                    <Play />
+                    <span>Listas para iniciar</span>
+                    <strong>{shopFloorSummary.ready ?? 0}</strong>
+                </article>
+                <article>
+                    <Timer />
+                    <span>En ejecución</span>
+                    <strong>{shopFloorSummary.running ?? 0}</strong>
+                </article>
+                <article>
+                    <Pause />
+                    <span>En pausa</span>
+                    <strong>{shopFloorSummary.paused ?? 0}</strong>
+                </article>
+                <article>
+                    <CircleCheck />
+                    <span>Terminadas hoy</span>
+                    <strong>{shopFloorSummary.completedToday ?? 0}</strong>
+                </article>
             </div>
-            <form onSubmit={submit} className="process-board">
-                <section className="process-port source">
-                    <p className="eyebrow">ENTRADA</p>
-                    <ScanLine />
-                    <h2>
-                        {operation.input_part?.description ??
-                            'Sin material de entrada'}
-                    </h2>
-                    {operation.input_part && (
-                        <>
-                            <label>
-                                Escanear contenedor
-                                <span className="scan-input">
-                                    <ScanLine />
-                                    <input
-                                        placeholder="Escanea o escribe el serial"
-                                        value={inputScan}
-                                        onChange={(e) => {
-                                            const serial = e.target.value;
-                                            setInputScan(serial);
-                                            const match = compatible.find(
-                                                (row) =>
-                                                    row.serial.toLowerCase() ===
-                                                    serial.trim().toLowerCase(),
-                                            );
-                                            if (match) {
-                                                form.setData(
-                                                    'input_container_id',
-                                                    String(match.id),
-                                                );
-                                            }
-                                        }}
-                                    />
+
+            <div className="shop-floor-grid">
+                <aside className="dispatch-queue">
+                    <header>
+                        <div>
+                            <p className="eyebrow">DESPACHO</p>
+                            <h2>Cola de trabajo</h2>
+                        </div>
+                        <span>{orderOperations.length}</span>
+                    </header>
+                    <div className="dispatch-list">
+                        {orderOperations.map((job) => (
+                            <button
+                                type="button"
+                                key={String(job.id)}
+                                className={
+                                    String(job.id) === selectedJobId
+                                        ? 'dispatch-job active'
+                                        : 'dispatch-job'
+                                }
+                                onClick={() => chooseJob(job)}
+                            >
+                                <span className="dispatch-job-topline">
+                                    <b>{job.order_number}</b>
+                                    <span className={statusClass(job.status)}>
+                                        {job.status}
+                                    </span>
                                 </span>
-                            </label>
-                            <label>
-                                Contenedor
-                                <select
-                                    value={form.data.input_container_id}
-                                    onChange={(e) =>
-                                        form.setData(
-                                            'input_container_id',
-                                            e.target.value,
+                                <strong>
+                                    {job.operation_code} · {job.operation_name}
+                                </strong>
+                                <small>
+                                    {job.work_center} · {job.part_code} ·{' '}
+                                    {job.planned_quantity} {job.unit}
+                                </small>
+                            </button>
+                        ))}
+                        {orderOperations.length === 0 && (
+                            <div className="empty-state">
+                                No hay trabajo liberado para piso.
+                            </div>
+                        )}
+                    </div>
+                </aside>
+
+                <div className="execution-console">
+                    <section className="execution-context">
+                        <div>
+                            <p className="eyebrow">AUTORIZACIÓN DE TRABAJO</p>
+                            <h2>
+                                {currentJob?.order_number ??
+                                    'Captura por excepción'}
+                            </h2>
+                        </div>
+                        <label>
+                            Operación liberada
+                            <select
+                                value={form.data.production_order_operation_id}
+                                onChange={(event) =>
+                                    chooseJob(
+                                        orderOperations.find(
+                                            (row) =>
+                                                String(row.id) ===
+                                                event.target.value,
+                                        ),
+                                    )
+                                }
+                            >
+                                <option value="">
+                                    Captura sin orden (supervisión)
+                                </option>
+                                {orderOperations.map((row) => (
+                                    <option
+                                        value={String(row.id)}
+                                        key={String(row.id)}
+                                    >
+                                        {row.order_number} ·{' '}
+                                        {row.operation_code} · {row.status}
+                                    </option>
+                                ))}
+                            </select>
+                        </label>
+                        <div className="execution-actions">
+                            {currentJob?.status === 'READY' && (
+                                <button
+                                    type="button"
+                                    className="primary-button"
+                                    onClick={() =>
+                                        router.post(
+                                            `/mes/control/operations/${currentJob.id}/start`,
+                                            {},
+                                            { preserveScroll: true },
                                         )
                                     }
-                                    required
                                 >
-                                    <option value="">Seleccionar serial</option>
-                                    {compatible.map((row) => (
-                                        <option key={row.id} value={row.id}>
-                                            {row.serial} ·{' '}
-                                            {row.quantity_current} {row.unit}
-                                        </option>
-                                    ))}
-                                </select>
-                            </label>
+                                    <Play /> Iniciar
+                                </button>
+                            )}
+                            {currentSession?.status === 'RUNNING' && (
+                                <button
+                                    type="button"
+                                    className="secondary-button"
+                                    onClick={() => setPauseOpen(true)}
+                                >
+                                    <Pause /> Pausar
+                                </button>
+                            )}
+                            {currentSession?.status === 'PAUSED' && (
+                                <button
+                                    type="button"
+                                    className="primary-button"
+                                    onClick={() =>
+                                        router.patch(
+                                            `/mes/control/sessions/${currentSession.id}/resume`,
+                                            {},
+                                            { preserveScroll: true },
+                                        )
+                                    }
+                                >
+                                    <RotateCcw /> Reanudar
+                                </button>
+                            )}
+                            {currentSession && (
+                                <button
+                                    type="button"
+                                    className="danger-button"
+                                    disabled={
+                                        currentSession.status !== 'RUNNING'
+                                    }
+                                    onClick={() => {
+                                        scrap.setData(
+                                            'production_execution_session_id',
+                                            String(currentSession.id),
+                                        );
+                                        scrap.setData(
+                                            'unit',
+                                            operation.output_part.unit,
+                                        );
+                                        setScrapOpen(true);
+                                    }}
+                                >
+                                    <TriangleAlert /> Desperdicio
+                                </button>
+                            )}
+                        </div>
+                    </section>
+
+                    <section className="work-instruction-panel">
+                        <header>
+                            <div>
+                                <p className="eyebrow">INSTRUCCIÓN DIGITAL</p>
+                                <h2>
+                                    {currentJob?.instruction_title ??
+                                        'Seleccione trabajo liberado'}
+                                </h2>
+                            </div>
+                            {currentSession && (
+                                <span
+                                    className={statusClass(
+                                        currentSession.status,
+                                    )}
+                                >
+                                    {currentSession.status}
+                                </span>
+                            )}
+                        </header>
+                        <div className="instruction-checklist">
+                            {(currentChecklist.length > 0
+                                ? currentChecklist
+                                : instructionSteps.map(
+                                      (description, index) =>
+                                          ({
+                                              id: `preview-${index}`,
+                                              description,
+                                              completed: false,
+                                              preview: true,
+                                          }) as unknown as Row,
+                                  )
+                            ).map((item, index) => (
+                                <label key={String(item.id)}>
+                                    <input
+                                        type="checkbox"
+                                        checked={Boolean(item.completed)}
+                                        disabled={
+                                            !currentSession ||
+                                            Boolean(item.preview) ||
+                                            currentSession.status === 'PAUSED'
+                                        }
+                                        onChange={(event) =>
+                                            router.patch(
+                                                `/mes/control/operations/${currentJob?.id}/checklist/${item.id}`,
+                                                {
+                                                    completed:
+                                                        event.target.checked,
+                                                },
+                                                { preserveScroll: true },
+                                            )
+                                        }
+                                    />
+                                    <span>{index + 1}</span>
+                                    <p>{item.description}</p>
+                                </label>
+                            ))}
+                            {!currentJob && (
+                                <div className="empty-state">
+                                    Seleccione una operación de la cola para ver
+                                    su instrucción vigente.
+                                </div>
+                            )}
+                        </div>
+                    </section>
+
+                    <div className="process-pills">
+                        {operations.map((row) => (
+                            <button
+                                type="button"
+                                key={row.id}
+                                className={
+                                    row.id === operation.id ? 'active' : ''
+                                }
+                                onClick={() => choose(row.id)}
+                            >
+                                {row.name}
+                            </button>
+                        ))}
+                    </div>
+
+                    <form onSubmit={submit} className="process-board">
+                        <section className="process-port source">
+                            <p className="eyebrow">ENTRADA</p>
+                            <ScanLine />
+                            <h2>
+                                {operation.input_part?.description ??
+                                    'Sin material de entrada'}
+                            </h2>
+                            {operation.input_part && (
+                                <>
+                                    <label>
+                                        Escanear contenedor
+                                        <span className="scan-input">
+                                            <ScanLine />
+                                            <input
+                                                placeholder="Escanea o escribe el serial"
+                                                value={inputScan}
+                                                onChange={(event) => {
+                                                    const serial =
+                                                        event.target.value;
+                                                    setInputScan(serial);
+                                                    const match =
+                                                        compatible.find(
+                                                            (row) =>
+                                                                row.serial.toLowerCase() ===
+                                                                serial
+                                                                    .trim()
+                                                                    .toLowerCase(),
+                                                        );
+                                                    if (match)
+                                                        form.setData(
+                                                            'input_container_id',
+                                                            String(match.id),
+                                                        );
+                                                }}
+                                            />
+                                        </span>
+                                    </label>
+                                    <label>
+                                        Contenedor
+                                        <select
+                                            value={form.data.input_container_id}
+                                            onChange={(event) =>
+                                                form.setData(
+                                                    'input_container_id',
+                                                    event.target.value,
+                                                )
+                                            }
+                                            required
+                                        >
+                                            <option value="">
+                                                Seleccionar serial
+                                            </option>
+                                            {compatible.map((row) => (
+                                                <option
+                                                    key={row.id}
+                                                    value={row.id}
+                                                >
+                                                    {row.serial} ·{' '}
+                                                    {row.quantity_current}{' '}
+                                                    {row.unit}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </label>
+                                    <label>
+                                        Cantidad de entrada
+                                        <input
+                                            type="number"
+                                            min="0.0001"
+                                            step="any"
+                                            value={form.data.quantity_in}
+                                            onChange={(event) =>
+                                                form.setData(
+                                                    'quantity_in',
+                                                    event.target.value,
+                                                )
+                                            }
+                                            required
+                                        />
+                                    </label>
+                                </>
+                            )}
+                        </section>
+                        <section className="station-card">
+                            <span>{operation.code}</span>
+                            <Factory />
+                            <h2>{operation.name}</h2>
+                            <p>
+                                {operation.work_center?.code} ·{' '}
+                                {operation.work_center?.description}
+                            </p>
+                            <div>
+                                <small>Estado de autorización</small>
+                                <strong>
+                                    {currentJob
+                                        ? (currentSession?.status ??
+                                          currentJob.status)
+                                        : 'EXCEPCIÓN'}
+                                </strong>
+                            </div>
+                            <div>
+                                <small>Instrucción</small>
+                                <strong>
+                                    {checklistComplete
+                                        ? 'COMPLETA'
+                                        : currentJob
+                                          ? 'PENDIENTE'
+                                          : 'NO APLICA'}
+                                </strong>
+                            </div>
+                        </section>
+                        <section className="process-port output">
+                            <p className="eyebrow">PRODUCCIÓN</p>
+                            <Box />
+                            <h2>{operation.output_part.description}</h2>
                             <label>
-                                Cantidad de entrada
+                                Cantidad de salida ({operation.output_part.unit}
+                                )
                                 <input
                                     type="number"
                                     min="0.0001"
                                     step="any"
-                                    value={form.data.quantity_in}
-                                    onChange={(e) =>
+                                    value={form.data.quantity_out}
+                                    onChange={(event) =>
                                         form.setData(
-                                            'quantity_in',
-                                            e.target.value,
+                                            'quantity_out',
+                                            event.target.value,
                                         )
                                     }
                                     required
                                 />
                             </label>
-                        </>
-                    )}
-                </section>
-                <ArrowRight className="flow-arrow" />
-                <section className="station-card">
-                    <span>{operation.code}</span>
-                    <Factory />
-                    <h2>{operation.name}</h2>
-                    <p>
-                        {operation.work_center?.code} ·{' '}
-                        {operation.work_center?.description}
-                    </p>
-                    <div>
-                        <small>Tiempo de proceso</small>
-                        <strong>
-                            {operation.duration_hours === null
-                                ? 'Por definir'
-                                : `${operation.duration_hours} h`}
-                        </strong>
-                    </div>
-                </section>
-                <ArrowRight className="flow-arrow" />
-                <section className="process-port output">
-                    <p className="eyebrow">PRODUCCIÓN</p>
-                    <Box />
-                    <h2>{operation.output_part.description}</h2>
-                    <label>
-                        Cantidad de salida ({operation.output_part.unit})
-                        <input
-                            type="number"
-                            min="0.0001"
-                            step="any"
-                            value={form.data.quantity_out}
-                            onChange={(e) =>
-                                form.setData('quantity_out', e.target.value)
-                            }
-                            required
-                        />
-                    </label>
-                    <label>
-                        Notas
-                        <textarea
-                            value={form.data.notes}
-                            onChange={(e) =>
-                                form.setData('notes', e.target.value)
-                            }
-                            rows={3}
-                        />
-                    </label>
-                    <button
-                        className="primary-button"
-                        disabled={form.processing}
-                    >
-                        <CircleCheck /> Registrar producción
-                    </button>
-                </section>
-            </form>
+                            <label>
+                                Notas
+                                <textarea
+                                    value={form.data.notes}
+                                    onChange={(event) =>
+                                        form.setData(
+                                            'notes',
+                                            event.target.value,
+                                        )
+                                    }
+                                    rows={3}
+                                />
+                            </label>
+                            <button
+                                className="primary-button"
+                                disabled={form.processing || !canProduce}
+                            >
+                                <CircleCheck /> Registrar producción
+                            </button>
+                            {!canProduce && (
+                                <small className="control-gate-message">
+                                    Inicie la operación y complete la
+                                    instrucción para habilitar el registro.
+                                </small>
+                            )}
+                        </section>
+                    </form>
+                </div>
+            </div>
+
+            <DataCard title="Desperdicio reciente en piso">
+                <Table
+                    headers={[
+                        'Fecha',
+                        'Orden',
+                        'Operación',
+                        'Causa',
+                        'Contenedor',
+                        'Cantidad',
+                        'Operador',
+                    ]}
+                    rows={recentScrap.map((row) => [
+                        dateTime(row.reported_at),
+                        row.order_number,
+                        row.operation,
+                        `${row.reason_code} · ${row.reason}`,
+                        row.container ?? 'Sin contenedor',
+                        `${row.quantity} ${row.unit}`,
+                        row.operator,
+                    ])}
+                    empty="Sin desperdicio registrado en operaciones activas."
+                />
+            </DataCard>
+
             {Object.keys(form.errors).length > 0 && (
                 <p className="form-error">
                     {Object.values(form.errors).join(' ')}
                 </p>
             )}
+
+            <MesRecordDialog
+                open={pauseOpen}
+                onOpenChange={setPauseOpen}
+                title="Pausar operación"
+                description="El motivo queda auditado y el tiempo activo se conserva."
+            >
+                <form
+                    className="mes-form"
+                    onSubmit={(event) => {
+                        event.preventDefault();
+                        pause.patch(
+                            `/mes/control/sessions/${currentSession?.id}/pause`,
+                            {
+                                preserveScroll: true,
+                                onSuccess: () => {
+                                    pause.reset();
+                                    setPauseOpen(false);
+                                },
+                            },
+                        );
+                    }}
+                >
+                    <label>
+                        Motivo de pausa
+                        <textarea
+                            value={pause.data.reason}
+                            onChange={(event) =>
+                                pause.setData('reason', event.target.value)
+                            }
+                            required
+                        />
+                    </label>
+                    <div className="record-actions">
+                        <button
+                            className="primary-button"
+                            disabled={pause.processing}
+                        >
+                            Confirmar pausa
+                        </button>
+                    </div>
+                </form>
+            </MesRecordDialog>
+
+            <MesRecordDialog
+                open={scrapOpen}
+                onOpenChange={setScrapOpen}
+                title="Registrar desperdicio"
+                description="Clasifica la pérdida y descuenta inventario cuando se indica un contenedor."
+            >
+                <form
+                    className="mes-form"
+                    onSubmit={(event) => {
+                        event.preventDefault();
+                        scrap.post('/mes/control/scrap', {
+                            preserveScroll: true,
+                            onSuccess: () => {
+                                scrap.reset();
+                                setScrapOpen(false);
+                            },
+                        });
+                    }}
+                >
+                    <div className="form-grid">
+                        <label>
+                            Causa
+                            <select
+                                value={scrap.data.scrap_reason_code_id}
+                                onChange={(event) =>
+                                    scrap.setData(
+                                        'scrap_reason_code_id',
+                                        event.target.value,
+                                    )
+                                }
+                                required
+                            >
+                                <option value="">Seleccione…</option>
+                                {scrapReasons.map((row) => (
+                                    <option
+                                        key={String(row.id)}
+                                        value={String(row.id)}
+                                    >
+                                        {row.code} · {row.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </label>
+                        <label>
+                            Contenedor afectado
+                            <select
+                                value={scrap.data.container_id}
+                                onChange={(event) =>
+                                    scrap.setData(
+                                        'container_id',
+                                        event.target.value,
+                                    )
+                                }
+                            >
+                                <option value="">
+                                    Sin descuento de inventario
+                                </option>
+                                {containers.map((row) => (
+                                    <option key={row.id} value={row.id}>
+                                        {row.serial} · {row.quantity_current}{' '}
+                                        {row.unit}
+                                    </option>
+                                ))}
+                            </select>
+                        </label>
+                        <label>
+                            Cantidad
+                            <input
+                                type="number"
+                                min="0.0001"
+                                step="any"
+                                value={scrap.data.quantity}
+                                onChange={(event) =>
+                                    scrap.setData(
+                                        'quantity',
+                                        event.target.value,
+                                    )
+                                }
+                                required
+                            />
+                        </label>
+                        <label>
+                            Unidad
+                            <input
+                                value={scrap.data.unit}
+                                onChange={(event) =>
+                                    scrap.setData('unit', event.target.value)
+                                }
+                                required
+                            />
+                        </label>
+                    </div>
+                    <label>
+                        Observación
+                        <textarea
+                            value={scrap.data.notes}
+                            onChange={(event) =>
+                                scrap.setData('notes', event.target.value)
+                            }
+                            required
+                        />
+                    </label>
+                    <div className="record-actions">
+                        <button
+                            className="primary-button"
+                            disabled={scrap.processing}
+                        >
+                            Guardar desperdicio
+                        </button>
+                    </div>
+                </form>
+            </MesRecordDialog>
         </div>
     );
 }
@@ -1225,14 +1710,9 @@ export default function Section({
 }) {
     const render = () => {
         if (
-            [
-                'parts',
-                'locations',
-                'operations',
-                'routing',
-                'bom',
-                'users',
-            ].includes(section)
+            ['parts', 'locations', 'operations', 'routing', 'bom'].includes(
+                section,
+            )
         )
             return <MasterTable section={section} data={data} />;
         if (section === 'control')
@@ -1241,6 +1721,19 @@ export default function Section({
                     operations={data.operations}
                     containers={data.containers}
                     orderOperations={data.orderOperations}
+                    executionSessions={data.executionSessions}
+                    checklistItems={data.checklistItems}
+                    scrapReasons={data.scrapReasons}
+                    recentScrap={data.recentScrap}
+                    shopFloorSummary={data.shopFloorSummary}
+                />
+            );
+        if (section === 'users')
+            return (
+                <UserAdministration
+                    users={data.users ?? []}
+                    roles={data.roles ?? []}
+                    permissions={data.permissions ?? []}
                 />
             );
         if (section === 'nursery')
@@ -1262,6 +1755,7 @@ export default function Section({
                     <QualitySection data={data} />
                     <AdvancedQualitySection data={data} />
                     <QualityReleaseSection data={data} />
+                    <LaboratorySection data={data} />
                 </div>
             );
         if (section === 'environment')
@@ -1277,6 +1771,7 @@ export default function Section({
                 <div className="stack-xl">
                     <MaintenanceSection data={data} />
                     <MaintenanceSparesSection data={data} />
+                    <MaintenanceConditionSection data={data} />
                 </div>
             );
         if (section === 'audit') return <AuditSection data={data} />;

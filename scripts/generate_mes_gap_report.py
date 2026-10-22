@@ -660,14 +660,14 @@ def build_story() -> list:
 
 
 def build_updated_story() -> list:
-    """Estado posterior al cierre industrial funcional de Fase 1."""
+    """Estado posterior al avance de calidad y confiabilidad."""
     story: list = [
         Spacer(1, 50 * mm),
-        P("Estado posterior al cierre industrial Fase 1", "CoverTitle"),
+        P("Estado de avance y brechas restantes", "CoverTitle"),
         P("InsectMES para mosca soldado negro", "CoverTitle"),
         Spacer(1, 4 * mm),
         P(
-            "Actualización del diagnóstico: rutas productivas segregadas, turnos, paros, OEE, COA, muestras de retención y repuestos incorporados; brechas restantes para una operación industrial de Hermetia illucens.",
+            "Actualización del diagnóstico: aprobaciones de Fase 0 confirmadas, laboratorio interno y mantenimiento por condición incorporados; requisitos documentales y brechas restantes para una operación industrial de Hermetia illucens.",
             "CoverSub",
         ),
         Spacer(1, 18 * mm),
@@ -675,12 +675,12 @@ def build_updated_story() -> list:
             [
                 [P("RESULTADO", "TableHeader"), P("SIGUIENTE META", "TableHeader")],
                 [
-                    Paragraph("Cierre industrial funcional", ParagraphStyle("coverUpdated", fontName=FONT_BOLD, fontSize=17, textColor=WHITE)),
+                    Paragraph("Avance funcional verificado", ParagraphStyle("coverUpdated", fontName=FONT_BOLD, fontSize=17, textColor=WHITE)),
                     Paragraph("Validación e integración", ParagraphStyle("coverNext", fontName=FONT_BOLD, fontSize=17, textColor=WHITE)),
                 ],
                 [
-                    P("Rutas BSF separadas, alimentación, CAPA, COA, retención, mantenimiento, repuestos, turnos, paros y OEE.", "CoverSub"),
-                    P("Piloto real, LIMS, ERP/planta conectada, alta disponibilidad y cumplimiento aprobado.", "CoverSub"),
+                    P("Laboratorio interno, métodos, muestras, resultados, cuarentena; condición de activos, OT automática, MTTR y MTBF.", "CoverSub"),
+                    P("Evidencia documental completa, piloto real, LIMS externo, ERP/planta conectada y alta disponibilidad.", "CoverSub"),
                 ],
             ],
             colWidths=[78 * mm, 78 * mm],
@@ -703,13 +703,13 @@ def build_updated_story() -> list:
     story += [
         P("1. Estado ejecutivo actualizado", "H1x"),
         P(
-            "InsectMES conserva el núcleo P0 y completa el cierre industrial funcional de Fase 1: rutas separadas por destino biológico, alimentación trazable, CAPA y cuarentena, COA y muestras de retención, activos, calibración, repuestos, turnos, causas de paro y OEE por centro.",
+            "InsectMES conserva el núcleo P0 y amplía la Fase 1 con laboratorio interno trazable para microbiología, química y estabilidad, además de mantenimiento por condición, bloqueo automático, OT correctiva y KPIs MTTR/MTBF. Las aprobaciones de Fase 0 fueron confirmadas como completadas; su expediente sigue en verificación documental.",
             "Callout",
         ),
         Table(
             [[
                 maturity_card("Madurez técnica", "4 / 5", "MES funcional para piloto, con calidad, mantenimiento y desempeño industrial trazables.", GREEN),
-                maturity_card("Madurez de negocio", "2.5 / 5", "La URS, trazabilidad y criterios regulatorios aún requieren aprobación formal.", AMBER),
+                maturity_card("Madurez de negocio", "3 / 5", "Aprobaciones realizadas; faltan metadatos y evidencia vinculada para cerrar documentalmente Fase 0.", AMBER),
             ]],
             colWidths=[82 * mm, 82 * mm],
             hAlign="LEFT",
@@ -717,11 +717,11 @@ def build_updated_story() -> list:
         ),
         P("Dictamen", "H2x"),
         P(
-            "Puede utilizarse como MES de piloto para una línea BSF definida. Aún no debe declararse MES industrial completo para toda la empresa porque faltan validación formal con lotes reales, análisis microbiológico y químico integrado a LIMS, planificación finita, integraciones automáticas, costos reales, alta disponibilidad y evidencia regulatoria por producto y mercado.",
+            "Puede utilizarse como MES de piloto para una línea BSF definida. Aún no debe declararse MES industrial completo para toda la empresa porque faltan el cierre documental de Fase 0, validación con lotes reales, integración con LIMS/equipos de laboratorio, planificación finita, integraciones automáticas, costos reales, alta disponibilidad y evidencia regulatoria por producto y mercado.",
         ),
         P("Validación técnica ejecutada", "H2x"),
         *bullets([
-            "57 pruebas automatizadas y 241 aserciones aprobadas.",
+            "61 pruebas automatizadas y 277 aserciones aprobadas.",
             "Análisis estático PHP sin errores y compilación de React/TypeScript satisfactoria.",
             "Migración SQLite y datos iniciales reproducibles.",
             "Respaldo real con checksum SHA-256 e integrity_check satisfactorio.",
@@ -732,7 +732,7 @@ def build_updated_story() -> list:
 
     implemented_rows = [
         ["Planeación y órdenes", "Órdenes priorizadas y calendarizadas; ruta, instrucciones e insumos planificados; liberación e inicio controlados.", "Implementado"],
-        ["Ejecución en piso", "Captura enlazada a orden y operación, instrucción vigente, operador, cantidades, notas, inventario y genealogía.", "Implementado"],
+        ["Ejecución en piso", "Despacho por cola, inicio, pausa y reanudación; instrucción y checklist obligatorios; desperdicio por causa; captura enlazada a orden, operación, operador, inventario y genealogía.", "Implementado"],
         ["Genealogía", "Producción, división y fusión con grupo de evento, razón, múltiples fuentes y consulta por serial/lote.", "Implementado"],
         ["Calidad", "Especificaciones, muestreo, evaluación PASS/FAIL, cuarentena y disposición RELEASE/REJECT.", "Implementado"],
         ["Bioseguridad", "Eventos de limpieza, plagas, visitas, mortalidad, barreras y condición sanitaria con cierre correctivo.", "Implementado"],
@@ -747,6 +747,8 @@ def build_updated_story() -> list:
         ["COA y retención", "Certificado basado en inspecciones liberadas, aprobación auditada y muestras con cantidad, ubicación y caducidad.", "Implementado F1"],
         ["Turnos, paros y OEE", "Tres turnos, catálogo de causas, apertura/cierre de paro y cálculo de disponibilidad, rendimiento, calidad y OEE.", "Implementado F1"],
         ["Repuestos", "Catálogo MRO, existencia, punto de reorden y consumo trazable contra orden de mantenimiento.", "Implementado F1"],
+        ["Laboratorio interno", "Métodos de microbiología, química y estabilidad; recepción de muestras; resultados PASS/FAIL/REVIEW y cuarentena automática.", "Implementado F1"],
+        ["Mantenimiento por condición", "Lecturas por activo, límites de advertencia/crítico, bloqueo, OT automática y KPIs observados MTTR/MTBF.", "Implementado F1"],
     ]
     story += [
         P("2. Capacidades P0 y Fase 1 implementadas", "H1x"),
@@ -761,11 +763,11 @@ def build_updated_story() -> list:
     ]
 
     remaining_rows = [
-        ["Aprobación Fase 0", "Firmar URS, mapa, riesgos, método de medición y modelo de lote; cerrar observaciones por área.", "P0 de gobierno"],
-        ["Piloto y aprobación", "Ejecutar lotes reales, pruebas por rol, recall, restauración y aprobación formal con evidencia.", "P0 de negocio"],
-        ["Calidad avanzada restante", "Estabilidad, microbiología/química, gestión de métodos y equipos de laboratorio e integración LIMS.", "P1"],
-        ["Mantenimiento restante", "Planes por contador/condición, habilidades, MTBF, MTTR y monitoreo predictivo.", "P1"],
-        ["Planificación avanzada", "Capacidad finita, campañas, turnos, recursos, restricciones biológicas y secuenciación.", "P1"],
+        ["Expediente Fase 0", "Vincular por cada responsable nombre, cargo, versión aprobada, fecha y referencia de evidencia. Las aprobaciones no se repiten.", "P0 documental"],
+        ["Piloto y validación", "Ejecutar lotes reales, pruebas por rol, recall, restauración y aceptación del piloto con evidencia.", "P0 de negocio"],
+        ["Calidad avanzada restante", "Validar límites y métodos, administrar equipos/reactivos y conectar un LIMS externo; consolidar el programa longitudinal de estabilidad.", "P1"],
+        ["Mantenimiento restante", "Matriz de habilidades, planes predictivos, integración de sensores y contadores automáticos; validar KPIs con historial real.", "P1"],
+        ["Planificación avanzada", "Capacidad finita, campañas, restricciones biológicas y optimización automática multi-centro.", "P1"],
         ["Integraciones", "ERP, básculas, PLC/SCADA, sensores MQTT/OPC UA, impresoras, laboratorio y almacenes.", "P1"],
         ["Costo real", "Energía, mano de obra real, sustrato, depreciación, mermas, frass y aceite por lote.", "P1"],
         ["Logística", "FEFO, ubicación dirigida, preparación, embarque, cliente, devolución y retiro comercial.", "P1"],
@@ -775,19 +777,19 @@ def build_updated_story() -> list:
     ]
     story += [
         P("3. Brechas que aún faltan", "H1x"),
-        P("La lista retira alimentación/escaneo, desviaciones/CAPA, activos, calibración, repuestos, COA, retención, turnos, paros y OEE. Conserva únicamente validación real, capacidades avanzadas e integración."),
+        P("La lista retira el control de piso conectado, laboratorio interno, estabilidad registrable, mantenimiento por condición y KPIs MTTR/MTBF, además de las capacidades ya implementadas. Conserva únicamente verificación documental, validación real, capacidades avanzadas e integración."),
         table(["Dominio", "Trabajo pendiente", "Prioridad"], remaining_rows, [39 * mm, 99 * mm, 26 * mm]),
         PageBreak(),
     ]
 
     phase_zero_rows = [
-        ["Mapa de procesos BSF", "Preparado", "Recorrer el flujo real y aprobar excepciones, retrabajos y coproductos."],
-        ["URS", "Preparada", "Aceptar o modificar cada requisito y congelar versión 1.0."],
-        ["Registro de riesgos", "Preparado", "Asignar dueño, fecha compromiso y riesgo residual."],
-        ["Gobierno de datos", "Preparado", "Nombrar dueños y aprobar altas/cambios/desactivaciones."],
-        ["Métodos de medición", "Preparados", "Validar método, muestreo, equipos y calibración en planta."],
-        ["Matriz regulatoria", "Preliminar", "Obtener dictamen por producto, uso, sustrato y mercado."],
-        ["Definición de lote", "Preparada", "Firmar reglas de serial, lote, colonia, split, merge y recall."],
+        ["Mapa de procesos BSF", "Aprobación completada", "Vincular nombre, cargo, versión, fecha y evidencia en 08-approval-register.md."],
+        ["URS", "Aprobación completada", "Completar nombre, cargo, versión, fecha y evidencia en 02-urs.md y 08-approval-register.md."],
+        ["Registro de riesgos", "Aprobación completada", "Vincular nombre, cargo, versión, fecha y evidencia en 08-approval-register.md."],
+        ["Gobierno de datos", "Aprobación completada", "Vincular nombre, cargo, versión, fecha y evidencia en 08-approval-register.md."],
+        ["Métodos de medición", "Aprobación completada", "Vincular nombre, cargo, versión, fecha y evidencia en 08-approval-register.md."],
+        ["Matriz regulatoria", "Aprobación interna completada", "Vincular evidencia interna; el dictamen externo por producto/mercado sigue abierto."],
+        ["Definición de lote", "Aprobación completada", "Completar nombre, cargo, versión, fecha y evidencia en 07-lot-and-traceability-definition.md y 08-approval-register.md."],
     ]
     story += [
         P("4. Fase 0 - entregables y cierre", "H1x"),
@@ -795,7 +797,7 @@ def build_updated_story() -> list:
         table(["Entregable", "Estado", "Acción para cerrar"], phase_zero_rows, [47 * mm, 29 * mm, 88 * mm]),
         P("Criterio de cierre", "H2x"),
         P(
-            "La salida de Fase 0 requiere nombre, cargo, versión y fecha de aprobación de Operaciones, Calidad, Bioseguridad, TI y Dirección. Como mínimo deben quedar firmadas la URS y la definición de lote y trazabilidad.",
+            "Las aprobaciones de Operaciones, Calidad, Bioseguridad, TI y Dirección están completadas y no deben solicitarse de nuevo. Fase 0 permanece en verificación documental hasta transcribir, para cada responsable, nombre, cargo, versión aprobada, fecha de aprobación y referencia de evidencia. Ninguno de esos datos fue localizado en los archivos revisados y no se inventó.",
             "Callout",
         ),
         P("Prueba recomendada", "H2x"),
@@ -835,9 +837,9 @@ def build_updated_story() -> list:
     ]
 
     roadmap_rows = [
-        ["Cierre Fase 0", "2-4 semanas", "Talleres, firma URS/lote, dueños de datos, riesgo residual y alcance del piloto.", "Paquete aprobado"],
+        ["Verificación Fase 0", "1-2 semanas", "Incorporar metadatos y referencias de evidencia existentes; revisar integridad del expediente sin repetir aprobaciones.", "Expediente verificable"],
         ["Piloto validado", "4-8 semanas", "Lotes reales, pruebas de usuario, recall, desviaciones controladas y restauración.", "Un lote sin registros paralelos críticos"],
-        ["Completar Fase 1 avanzada", "6-10 semanas", "LIMS, estabilidad, microbiología/química, mantenimiento por condición y KPIs MTBF/MTTR.", "Laboratorio y confiabilidad conciliados"],
+        ["Completar Fase 1 avanzada", "6-10 semanas", "Validación de métodos/límites, equipos y reactivos, LIMS externo, sensores, contadores automáticos y mantenimiento predictivo.", "Laboratorio y confiabilidad conciliados"],
         ["Planta conectada", "8-14 semanas", "Sensores, básculas, PLC/SCADA, alarmas, colas, OEE y monitoreo.", "Datos automáticos conciliados"],
         ["ERP y escalamiento", "8-14 semanas", "Demanda, compras, costos reales, logística, PostgreSQL y HA.", "Cierre sin doble captura"],
         ["Optimización", "Continuo", "SPC, predicción de cosecha, receta, energía, capacidad y analítica.", "Mejora medible"],
@@ -847,7 +849,7 @@ def build_updated_story() -> list:
         table(["Etapa", "Duración", "Entregables", "Salida"], roadmap_rows, [31 * mm, 25 * mm, 70 * mm, 38 * mm]),
         P("Prioridades de los próximos 30 días", "H2x"),
         *bullets([
-            "Aprobar Fase 0 y seleccionar un producto, línea y turno para el piloto.",
+            "Completar los campos documentales de Fase 0 con la evidencia ya aprobada y seleccionar un producto, línea y turno para el piloto.",
             "Completar datos maestros reales, límites, instrumentos y responsables.",
             "Crear guiones de prueba por rol y capacitar operadores y supervisores.",
             "Ejecutar trazabilidad, cuarentena, alarma, bioseguridad, masa y recuperación.",
@@ -877,7 +879,7 @@ def build_updated_story() -> list:
         ]),
         Spacer(1, 5 * mm),
         P(
-            "Conclusión: InsectMES ya cubre el núcleo P0 y el cierre industrial funcional de Fase 1 para alimentación, CAPA, calidad, mantenimiento y desempeño. La brecha principal es ahora la validación formal en planta, las capacidades avanzadas y la integración con sistemas y equipos externos.",
+            "Conclusión: InsectMES ya cubre el núcleo P0 y amplía la Fase 1 con laboratorio interno y confiabilidad por condición. La brecha principal es ahora completar el expediente documental, validar en planta y conectar sistemas, equipos y laboratorios externos.",
             "Callout",
         ),
         P("Documentos entregados", "H2x"),
@@ -891,7 +893,7 @@ def build_updated_story() -> list:
         HRFlowable(width="100%", thickness=1, color=LINE),
         Spacer(1, 4 * mm),
         P(
-            "Nota: este documento es una evaluación técnica y operativa. No sustituye validación de proceso, dictamen legal, autorización sanitaria ni aprobación formal de los responsables de la empresa.",
+            "Nota: este documento registra que las aprobaciones internas fueron confirmadas como completadas, pero no sustituye ni inventa sus evidencias. Tampoco sustituye validación de proceso, dictamen legal o autorización sanitaria.",
             "Smallx",
         ),
     ]
@@ -907,9 +909,9 @@ def main() -> None:
         leftMargin=18 * mm,
         topMargin=20 * mm,
         bottomMargin=17 * mm,
-        title="Estado posterior al cierre industrial Fase 1 - InsectMES BSF",
+        title="Estado de avance y brechas restantes - InsectMES BSF",
         author="Insetti",
-        subject="Cierre industrial funcional de Fase 1, brechas restantes y recomendaciones de industrialización",
+        subject="Aprobaciones de Fase 0, avance funcional, brechas restantes y recomendaciones de industrialización",
     )
     document.build(build_updated_story(), onFirstPage=first_page, onLaterPages=later_pages)
     print(OUTPUT)

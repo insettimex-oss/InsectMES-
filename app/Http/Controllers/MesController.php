@@ -12,18 +12,21 @@ use App\Models\ProductionOrder;
 use App\Models\ProductionOrderOperation;
 use App\Models\WorkCenter;
 use App\Services\AuditService;
+use App\Services\MesAuthorization;
 use App\Services\MesDataService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class MesController extends Controller
 {
-    public function __construct(private readonly MesDataService $data, private readonly AuditService $audit) {}
+    public function __construct(private readonly MesDataService $data, private readonly AuditService $audit, private readonly MesAuthorization $authorization) {}
 
     public function dashboard(): Response
     {
@@ -32,9 +35,7 @@ class MesController extends Controller
 
     public function section(string $section): Response
     {
-        abort_unless(in_array($section, ['parts', 'locations', 'operations', 'routing', 'bom', 'orders', 'control', 'nursery', 'feeding', 'inventory', 'trace', 'quality', 'environment', 'biosecurity', 'mass-balance', 'performance', 'maintenance', 'audit', 'continuity', 'governance', 'parameters', 'costs', 'users'], true), 404);
-        abort_if($section === 'users' && request()->user()->role !== 'admin', 403);
-        abort_if(in_array($section, ['audit', 'continuity'], true) && ! in_array(request()->user()->role, ['admin', 'supervisor'], true), 403);
+        $this->authorization->authorizeSection(request()->user(), $section);
 
         return Inertia::render('mes/section', ['section' => $section, 'data' => $this->data->section($section)]);
     }
@@ -77,6 +78,9 @@ class MesController extends Controller
             'production_order_operation_id' => ['nullable', 'exists:production_order_operations,id'],
             'notes' => ['nullable', 'string', 'max:1000'],
         ]);
+        if (empty($validated['production_order_operation_id']) && ! $request->user()->hasPermission('production.approve')) {
+            throw ValidationException::withMessages(['production_order_operation_id' => 'La captura sin orden requiere autorización de supervisión.']);
+        }
 
         DB::transaction(function () use ($validated, $request): void {
             $operation = Operation::with(['outputPart', 'workCenter'])->findOrFail((int) $validated['operation_id']);
@@ -84,6 +88,16 @@ class MesController extends Controller
             $orderOperation = isset($validated['production_order_operation_id']) ? ProductionOrderOperation::lockForUpdate()->findOrFail((int) $validated['production_order_operation_id']) : null;
             abort_if($order && ! in_array($order->status, ['RELEASED', 'IN_PROGRESS'], true), 422, 'La orden debe estar liberada o en proceso.');
             abort_if($orderOperation && ($orderOperation->production_order_id !== $order?->id || $orderOperation->operation_id !== $operation->id), 422, 'La operación seleccionada no pertenece a la orden.');
+            $session = null;
+            if ($orderOperation) {
+                $session = DB::table('production_execution_sessions')->where('production_order_operation_id', $orderOperation->id)->where('status', 'RUNNING')->lockForUpdate()->latest('id')->first();
+                if (! $session) {
+                    throw ValidationException::withMessages(['production_order_operation_id' => 'Inicie o reanude la operación antes de registrar producción.']);
+                }
+                if (DB::table('production_checklist_items')->where('production_order_operation_id', $orderOperation->id)->where('completed', false)->exists()) {
+                    throw ValidationException::withMessages(['production_order_operation_id' => 'Complete todos los pasos de la instrucción antes de registrar producción.']);
+                }
+            }
             $input = isset($validated['input_container_id']) ? Container::lockForUpdate()->findOrFail((int) $validated['input_container_id']) : null;
             $quantityIn = (float) ($validated['quantity_in'] ?? 0);
             abort_if($operation->input_part_id && ! $input, 422, 'La operación requiere un contenedor de entrada.');
@@ -121,14 +135,19 @@ class MesController extends Controller
             ]);
             if ($orderOperation) {
                 $executionOrder = ProductionOrder::query()->whereKey($orderOperation->production_order_id)->firstOrFail();
+                $activeMinutes = (int) $session->active_minutes + Carbon::parse($session->last_resumed_at ?? $session->started_at)->diffInMinutes(now());
+                DB::table('production_execution_sessions')->where('id', $session->id)->update([
+                    'status' => 'COMPLETED', 'active_minutes' => $activeMinutes, 'completed_at' => now(), 'updated_at' => now(),
+                ]);
                 $orderOperation->update([
                     'status' => 'COMPLETED', 'actual_input' => $quantityIn, 'actual_output' => $validated['quantity_out'],
-                    'operator_id' => $request->user()->id, 'started_at' => $orderOperation->started_at ?? now(), 'completed_at' => now(),
+                    'active_minutes' => $activeMinutes, 'operator_id' => $request->user()->id,
+                    'started_at' => $orderOperation->started_at ?? now(), 'completed_at' => now(),
                 ]);
                 $executionOrder->update(['status' => 'IN_PROGRESS', 'started_at' => $executionOrder->started_at ?? now()]);
                 $executionOrder->operations()->where('sequence', '>', $orderOperation->sequence)->orderBy('sequence')->first()?->update(['status' => 'READY']);
                 if (! $executionOrder->operations()->where('status', '!=', 'COMPLETED')->exists()) {
-                    $executionOrder->update(['completed_quantity' => $validated['quantity_out']]);
+                    $executionOrder->update(['status' => 'COMPLETED', 'completed_quantity' => $validated['quantity_out'], 'completed_at' => now()]);
                 }
             }
             $this->audit->record($request, 'PRODUCTION_RECORDED', $output, $validated['notes'] ?? 'Ejecución estándar', null, ['run_id' => $runId, 'order' => $order?->number]);
@@ -177,7 +196,7 @@ class MesController extends Controller
 
     public function updateParameter(Request $request, Parameter $parameter): RedirectResponse
     {
-        abort_unless(in_array($request->user()->role, ['admin', 'supervisor'], true), 403);
+        abort_unless($request->user()->hasPermission('administration.write'), 403);
         abort_unless($parameter->editable, 403);
         $before = $parameter->toArray();
         $parameter->update($request->validate(['value' => ['required', 'numeric', 'gte:0']]));

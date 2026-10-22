@@ -211,7 +211,7 @@ class MesP0Controller extends Controller
 
     public function disposeQuality(Request $request, int $inspection): RedirectResponse
     {
-        abort_unless(in_array($request->user()->role, ['admin', 'supervisor'], true), 403);
+        abort_unless($request->user()->hasPermission('quality.approve'), 403);
         $data = $request->validate(['disposition' => ['required', Rule::in(['RELEASE', 'REJECT'])], 'reason' => ['required', 'string', 'min:5', 'max:500']]);
         $row = DB::table('quality_inspections')->where('id', $inspection)->first();
         if ($row === null) {
@@ -307,7 +307,7 @@ class MesP0Controller extends Controller
 
     public function runBackup(Request $request): RedirectResponse
     {
-        abort_unless($request->user()->role === 'admin', 403);
+        abort_unless($request->user()->hasPermission('continuity.admin'), 403);
         $exit = Artisan::call('mes:backup');
         $this->audit->record($request, 'BACKUP_EXECUTED', 'backup_runs', 'Respaldo manual solicitado desde la aplicación', null, ['exit_code' => $exit]);
 

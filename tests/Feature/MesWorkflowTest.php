@@ -329,4 +329,138 @@ class MesWorkflowTest extends TestCase
         $this->assertDatabaseHas('spare_parts', ['id' => $spare->id, 'quantity_on_hand' => 1]);
         $this->assertDatabaseHas('maintenance_spare_part_usages', ['maintenance_work_order_id' => $order->id, 'spare_part_id' => $spare->id, 'quantity' => 1]);
     }
+
+    public function test_laboratory_failure_quarantines_the_traced_lot(): void
+    {
+        $container = Container::where('serial', 'BSF000106')->firstOrFail();
+
+        $this->post('/mes/quality/laboratory-methods', [
+            'code' => 'TEST-MIC',
+            'name' => 'Método microbiológico de prueba',
+            'category' => 'MICROBIOLOGY',
+            'result_type' => 'NUMERIC',
+            'unit' => 'UFC/g',
+            'min_value' => 0,
+            'max_value' => 10,
+        ])->assertRedirect();
+        $method = DB::table('laboratory_methods')->where('code', 'TEST-MIC')->first();
+
+        $this->post('/mes/quality/laboratory-samples', [
+            'container_id' => $container->id,
+            'purpose' => 'RELEASE',
+            'received_at' => now()->subMinute()->toDateTimeString(),
+            'due_at' => now()->addDay()->toDateTimeString(),
+            'notes' => 'Muestra trazada para liberación.',
+        ])->assertRedirect();
+        $sample = DB::table('laboratory_samples')->latest('id')->first();
+
+        $this->post('/mes/quality/laboratory-results', [
+            'laboratory_sample_id' => $sample->id,
+            'laboratory_method_id' => $method->id,
+            'result_value' => 12,
+            'tested_at' => now()->toDateTimeString(),
+            'notes' => 'Resultado fuera de especificación.',
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('laboratory_results', ['laboratory_sample_id' => $sample->id, 'status' => 'FAIL']);
+        $this->assertDatabaseHas('laboratory_samples', ['id' => $sample->id, 'status' => 'FAILED']);
+        $this->assertDatabaseHas('containers', ['id' => $container->id, 'status' => 'HOLD', 'quarantined' => true]);
+    }
+
+    public function test_critical_condition_blocks_asset_and_creates_corrective_order(): void
+    {
+        $asset = DB::table('assets')->where('code', 'EQ-NUR-01')->first();
+
+        $this->post('/mes/maintenance/condition-readings', [
+            'asset_id' => $asset->id,
+            'metric' => 'VIBRATION',
+            'value' => 9,
+            'unit' => 'mm/s',
+            'warning_limit' => 5,
+            'critical_limit' => 8,
+            'measured_at' => now()->toDateTimeString(),
+            'notes' => 'Vibración anormal durante operación.',
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('maintenance_condition_readings', ['asset_id' => $asset->id, 'status' => 'CRITICAL']);
+        $this->assertDatabaseHas('assets', ['id' => $asset->id, 'status' => 'BLOCKED']);
+        $this->assertDatabaseHas('maintenance_work_orders', [
+            'asset_id' => $asset->id,
+            'type' => 'CORRECTIVE',
+            'priority' => 'CRITICAL',
+            'status' => 'OPEN',
+        ]);
+    }
+
+    public function test_shop_floor_execution_requires_instruction_and_tracks_scrap(): void
+    {
+        $this->post('/mes/orders', [
+            'part_id' => Part::where('code', 'BSF005')->value('id'),
+            'planned_quantity' => 25,
+            'priority' => 'HIGH',
+            'scheduled_start' => now()->addHour()->toDateTimeString(),
+        ])->assertRedirect();
+        $order = ProductionOrder::latest('id')->firstOrFail();
+        $this->patch("/mes/orders/{$order->id}/status", ['status' => 'RELEASED', 'reason' => 'Material y centro confirmados'])->assertRedirect();
+        $operation = $order->operations()->where('status', 'READY')->firstOrFail();
+
+        $this->post("/mes/control/operations/{$operation->id}/start")->assertRedirect();
+        $session = DB::table('production_execution_sessions')->where('production_order_operation_id', $operation->id)->first();
+        $this->assertSame('RUNNING', $session->status);
+        $this->assertDatabaseCount('production_checklist_items', 4);
+
+        $this->from('/mes/control')->post('/mes/production', [
+            'operation_id' => $operation->operation_id,
+            'production_order_id' => $order->id,
+            'production_order_operation_id' => $operation->id,
+            'quantity_out' => 9,
+        ])->assertRedirect('/mes/control')->assertSessionHasErrors('production_order_operation_id');
+
+        foreach (DB::table('production_checklist_items')->where('production_order_operation_id', $operation->id)->get() as $item) {
+            $this->patch("/mes/control/operations/{$operation->id}/checklist/{$item->id}", ['completed' => true])->assertRedirect();
+        }
+
+        $reason = DB::table('scrap_reason_codes')->where('code', 'BIO-MORT')->first();
+        $this->post('/mes/control/scrap', [
+            'production_execution_session_id' => $session->id,
+            'scrap_reason_code_id' => $reason->id,
+            'quantity' => 1.5,
+            'unit' => 'g',
+            'notes' => 'Pérdida identificada durante preparación.',
+        ])->assertRedirect();
+
+        $this->post('/mes/production', [
+            'operation_id' => $operation->operation_id,
+            'production_order_id' => $order->id,
+            'production_order_operation_id' => $operation->id,
+            'quantity_out' => 9,
+            'notes' => 'Ejecución guiada completa.',
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('production_execution_sessions', ['id' => $session->id, 'status' => 'COMPLETED']);
+        $this->assertDatabaseHas('production_order_operations', ['id' => $operation->id, 'status' => 'COMPLETED', 'actual_scrap' => 1.5]);
+        $this->assertDatabaseHas('production_scrap_events', ['production_order_operation_id' => $operation->id, 'quantity' => 1.5]);
+        $this->assertDatabaseHas('production_order_operations', ['production_order_id' => $order->id, 'status' => 'READY']);
+    }
+
+    public function test_blocked_asset_prevents_shop_floor_start(): void
+    {
+        $this->post('/mes/orders', [
+            'part_id' => Part::where('code', 'BSF005')->value('id'),
+            'planned_quantity' => 25,
+            'priority' => 'NORMAL',
+            'scheduled_start' => now()->addHour()->toDateTimeString(),
+        ])->assertRedirect();
+        $order = ProductionOrder::latest('id')->firstOrFail();
+        $this->patch("/mes/orders/{$order->id}/status", ['status' => 'RELEASED', 'reason' => 'Liberación para prueba'])->assertRedirect();
+        $operation = $order->operations()->where('status', 'READY')->firstOrFail();
+        $workCenterId = Operation::findOrFail($operation->operation_id)->work_center_id;
+        DB::table('assets')->where('code', 'EQ-NUR-01')->update(['work_center_id' => $workCenterId, 'status' => 'BLOCKED']);
+
+        $this->from('/mes/control')->post("/mes/control/operations/{$operation->id}/start")
+            ->assertRedirect('/mes/control')
+            ->assertSessionHasErrors('operation');
+
+        $this->assertDatabaseMissing('production_execution_sessions', ['production_order_operation_id' => $operation->id]);
+    }
 }

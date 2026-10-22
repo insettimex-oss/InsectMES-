@@ -1271,11 +1271,13 @@ export function GovernanceSection({ data }: { data: Props }) {
             <div className="info-callout">
                 <ShieldCheck />
                 <div>
-                    <b>Paquete Fase 0 preparado</b>
+                    <b>Aprobaciones de Fase 0 completadas</b>
                     <p>
                         Los entregables están versionados en docs/phase-0. El
-                        cierre requiere revisión y firma reales de Operaciones,
-                        Calidad, Bioseguridad, TI y Dirección.
+                        expediente permanece en verificación documental hasta
+                        vincular nombre, cargo, versión, fecha y evidencia de
+                        Operaciones, Calidad, Bioseguridad, TI y Dirección. No
+                        se requieren nuevas aprobaciones.
                     </p>
                 </div>
             </div>

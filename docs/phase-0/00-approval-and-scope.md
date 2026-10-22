@@ -10,16 +10,18 @@ Desde recepción de sustratos e insumos hasta reproducción, huevo, guardería, 
 
 ## Paquete de aprobación
 
-| Documento           | Dueño propuesto        | Estado                       |
-| ------------------- | ---------------------- | ---------------------------- |
-| Mapa de procesos    | Operaciones            | Listo para revisión          |
-| URS                 | Operaciones / TI       | Listo para revisión          |
-| Registro de riesgos | Calidad / Bioseguridad | Listo para revisión          |
-| Datos maestros      | Ingeniería / TI        | Listo para revisión          |
-| Métodos de medición | Calidad                | Listo para revisión          |
-| Matriz regulatoria  | Calidad / Legal        | Validación externa requerida |
-| Lote y trazabilidad | Calidad / Operaciones  | Listo para revisión          |
+| Documento           | Dueño responsable      | Estado de aprobación                                                              |
+| ------------------- | ---------------------- | --------------------------------------------------------------------------------- |
+| Mapa de procesos    | Operaciones            | Aprobación completada; referencia de evidencia por vincular                       |
+| URS                 | Operaciones / TI       | Aprobación completada; metadatos y evidencia por registrar                        |
+| Registro de riesgos | Calidad / Bioseguridad | Aprobación completada; referencia de evidencia por vincular                       |
+| Datos maestros      | Ingeniería / TI        | Aprobación completada; referencia de evidencia por vincular                       |
+| Métodos de medición | Calidad                | Aprobación completada; referencia de evidencia por vincular                       |
+| Matriz regulatoria  | Calidad / Dirección    | Aprobación interna completada; dictamen externo sigue fuera del cierre documental |
+| Lote y trazabilidad | Calidad / Operaciones  | Aprobación completada; metadatos y evidencia por registrar                        |
 
 ## Criterio de salida
 
-La Fase 0 solo se considera cerrada cuando los responsables reales registren nombre, fecha, versión y aprobación de la URS y del modelo de trazabilidad. La aplicación implementa los controles; este documento no sustituye la firma del negocio.
+Las aprobaciones de los responsables fueron confirmadas como completadas el 20 de octubre de 2026 por el solicitante. Esta confirmación actualiza el estado del flujo, pero no sustituye el registro de evidencia.
+
+La Fase 0 permanece **en verificación documental** hasta completar nombre, cargo, versión aprobada, fecha de aprobación y referencia de evidencia para Operaciones, Calidad, Bioseguridad, TI y Dirección. Los campos faltantes y su ubicación se controlan en `08-approval-register.md`. No se requiere repetir las aprobaciones.

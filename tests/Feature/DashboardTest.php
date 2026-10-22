@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use Database\Seeders\AccessControlSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -18,7 +19,9 @@ class DashboardTest extends TestCase
 
     public function test_authenticated_users_can_visit_the_dashboard()
     {
-        $user = User::factory()->create();
+        $this->seed(AccessControlSeeder::class);
+        $user = User::query()->where('email', 'operador@insetti.com')->firstOrFail();
+        $user->update(['must_change_password' => false]);
         $this->actingAs($user);
 
         $response = $this->get(route('dashboard'));

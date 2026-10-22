@@ -25,3 +25,9 @@ El contenedor serializado es la unidad mínima. El lote agrupa contenedores que 
 ## Retiro simulado
 
 Seleccionar un serial o lote, recorrer genealogía hacia atrás hasta insumos/colonia y hacia adelante hasta productos/coproductos; identificar ubicación, estado, cantidades, órdenes y disposición. Registrar duración y brechas del simulacro.
+
+## Estado de aprobación
+
+La aprobación de esta definición por Operaciones, Calidad, Bioseguridad, TI y Dirección fue confirmada como **completada**. No se requiere una nueva aprobación.
+
+La evidencia disponible no contiene nombre, cargo, versión aprobada, fecha de aprobación ni referencia de la firma o acta de cada responsable. Estos campos deben incorporarse desde la evidencia existente en `08-approval-register.md`. Mientras no se complete esa trazabilidad documental, el modelo está aprobado con registro incompleto y la Fase 0 permanece en verificación documental.

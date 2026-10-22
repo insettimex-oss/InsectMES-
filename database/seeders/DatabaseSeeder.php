@@ -14,7 +14,6 @@ use App\Models\WorkCenter;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
@@ -22,10 +21,8 @@ class DatabaseSeeder extends Seeder
 
     public function run(): void
     {
-        $user = User::query()->updateOrCreate(
-            ['email' => 'admin@insetti.com'],
-            ['name' => 'Administrador Insetti', 'password' => Hash::make('InsectMES2026!'), 'email_verified_at' => now(), 'role' => 'admin', 'company' => 'Insetti'],
-        );
+        $this->call(AccessControlSeeder::class);
+        $user = User::query()->where('email', 'admin@insetti.com')->firstOrFail();
 
         $parts = [
             ['BSF001', 'Mosca adulta', 'pc', 'WIP'], ['BSF002', 'Huevos BSF', 'g', 'WIP'],

@@ -1,4 +1,4 @@
-import { Link } from '@inertiajs/react';
+import { Link, usePage } from '@inertiajs/react';
 import {
     Boxes,
     BookOpenCheck,
@@ -39,16 +39,30 @@ import {
 } from '@/components/ui/sidebar';
 import type { NavItem } from '@/types';
 
-const groups: Array<{ label: string; items: NavItem[] }> = [
+type AccessNavItem = NavItem & { permission: string };
+
+const groups: Array<{ label: string; items: AccessNavItem[] }> = [
     {
         label: 'Inicio',
         items: [
-            { title: 'Resumen', href: '/dashboard', icon: LayoutDashboard },
+            {
+                title: 'Resumen',
+                href: '/dashboard',
+                icon: LayoutDashboard,
+                permission: 'dashboard.read',
+            },
         ],
     },
     {
         label: 'Planificar',
-        items: [{ title: 'Órdenes', href: '/mes/orders', icon: CalendarClock }],
+        items: [
+            {
+                title: 'Órdenes',
+                href: '/mes/orders',
+                icon: CalendarClock,
+                permission: 'planning.read',
+            },
+        ],
     },
     {
         label: 'Ejecutar',
@@ -57,26 +71,54 @@ const groups: Array<{ label: string; items: NavItem[] }> = [
                 title: 'Piso de producción',
                 href: '/mes/control',
                 icon: Factory,
+                permission: 'production.read',
             },
-            { title: 'Guardería', href: '/mes/nursery', icon: Sprout },
-            { title: 'Alimentación', href: '/mes/feeding', icon: Utensils },
+            {
+                title: 'Guardería',
+                href: '/mes/nursery',
+                icon: Sprout,
+                permission: 'production.read',
+            },
+            {
+                title: 'Alimentación',
+                href: '/mes/feeding',
+                icon: Utensils,
+                permission: 'production.read',
+            },
         ],
     },
     {
         label: 'Controlar',
         items: [
-            { title: 'Calidad', href: '/mes/quality', icon: ClipboardCheck },
-            { title: 'OEE y paros', href: '/mes/performance', icon: Gauge },
-            { title: 'Ambiente', href: '/mes/environment', icon: Thermometer },
+            {
+                title: 'Calidad',
+                href: '/mes/quality',
+                icon: ClipboardCheck,
+                permission: 'quality.read',
+            },
+            {
+                title: 'OEE y paros',
+                href: '/mes/performance',
+                icon: Gauge,
+                permission: 'performance.read',
+            },
+            {
+                title: 'Ambiente',
+                href: '/mes/environment',
+                icon: Thermometer,
+                permission: 'environment.read',
+            },
             {
                 title: 'Balance de masa',
                 href: '/mes/mass-balance',
                 icon: Scale,
+                permission: 'production.read',
             },
             {
                 title: 'Bioseguridad',
                 href: '/mes/biosecurity',
                 icon: ShieldAlert,
+                permission: 'biosecurity.read',
             },
         ],
     },
@@ -87,44 +129,116 @@ const groups: Array<{ label: string; items: NavItem[] }> = [
                 title: 'Contenedores',
                 href: '/mes/inventory',
                 icon: PackageOpen,
+                permission: 'inventory.read',
             },
-            { title: 'Trazabilidad', href: '/mes/trace', icon: ClipboardList },
+            {
+                title: 'Trazabilidad',
+                href: '/mes/trace',
+                icon: ClipboardList,
+                permission: 'traceability.read',
+            },
         ],
     },
     {
         label: 'Ingeniería',
         items: [
-            { title: 'Rutas de proceso', href: '/mes/routing', icon: Route },
-            { title: 'BOM', href: '/mes/bom', icon: GitBranch },
-            { title: 'Artículos', href: '/mes/parts', icon: Boxes },
-            { title: 'Ubicaciones', href: '/mes/locations', icon: MapPin },
-            { title: 'Operaciones', href: '/mes/operations', icon: Cog },
-            { title: 'Mantenimiento', href: '/mes/maintenance', icon: Wrench },
+            {
+                title: 'Rutas de proceso',
+                href: '/mes/routing',
+                icon: Route,
+                permission: 'engineering.read',
+            },
+            {
+                title: 'BOM',
+                href: '/mes/bom',
+                icon: GitBranch,
+                permission: 'engineering.read',
+            },
+            {
+                title: 'Artículos',
+                href: '/mes/parts',
+                icon: Boxes,
+                permission: 'engineering.read',
+            },
+            {
+                title: 'Ubicaciones',
+                href: '/mes/locations',
+                icon: MapPin,
+                permission: 'engineering.read',
+            },
+            {
+                title: 'Operaciones',
+                href: '/mes/operations',
+                icon: Cog,
+                permission: 'engineering.read',
+            },
+            {
+                title: 'Mantenimiento',
+                href: '/mes/maintenance',
+                icon: Wrench,
+                permission: 'maintenance.read',
+            },
         ],
     },
     {
         label: 'Gobernar',
         items: [
-            { title: 'Fase 0', href: '/mes/governance', icon: BookOpenCheck },
-            { title: 'Auditoría', href: '/mes/audit', icon: ScrollText },
+            {
+                title: 'Fase 0',
+                href: '/mes/governance',
+                icon: BookOpenCheck,
+                permission: 'governance.read',
+            },
+            {
+                title: 'Auditoría',
+                href: '/mes/audit',
+                icon: ScrollText,
+                permission: 'audit.read',
+            },
             {
                 title: 'Continuidad',
                 href: '/mes/continuity',
                 icon: DatabaseBackup,
+                permission: 'continuity.read',
             },
         ],
     },
     {
         label: 'Administración',
         items: [
-            { title: 'Parámetros', href: '/mes/parameters', icon: Settings2 },
-            { title: 'Costos', href: '/mes/costs', icon: ChartNoAxesCombined },
-            { title: 'Usuarios', href: '/mes/users', icon: Users },
+            {
+                title: 'Parámetros',
+                href: '/mes/parameters',
+                icon: Settings2,
+                permission: 'administration.read',
+            },
+            {
+                title: 'Costos',
+                href: '/mes/costs',
+                icon: ChartNoAxesCombined,
+                permission: 'costs.read',
+            },
+            {
+                title: 'Usuarios y accesos',
+                href: '/mes/users',
+                icon: Users,
+                permission: 'users.manage',
+            },
         ],
     },
 ];
 
 export function AppSidebar() {
+    const permissions = usePage().props.auth.user?.permissions ?? [];
+    const visibleGroups = groups
+        .map((group) => ({
+            ...group,
+            items: group.items.filter((item) =>
+                permissions.includes(item.permission),
+            ),
+        }))
+        .filter((group) => group.items.length > 0);
+
     return (
         <Sidebar collapsible="icon" variant="inset" className="insect-sidebar">
             <SidebarHeader className="px-3 py-4">
@@ -143,7 +257,7 @@ export function AppSidebar() {
                 </SidebarMenu>
             </SidebarHeader>
             <SidebarContent>
-                {groups.map((group) => (
+                {visibleGroups.map((group) => (
                     <NavMain
                         key={group.label}
                         label={group.label}
