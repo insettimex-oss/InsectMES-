@@ -19,6 +19,7 @@ class AccessControlSeeder extends Seeder
             'planning' => ['Planeación', ['read', 'write', 'approve']],
             'production' => ['Producción', ['read', 'write', 'approve']],
             'inventory' => ['Inventario', ['read', 'write']],
+            'logistics' => ['Logística y embarques', ['read', 'write', 'approve']],
             'traceability' => ['Trazabilidad', ['read', 'write']],
             'quality' => ['Calidad', ['read', 'write', 'approve']],
             'laboratory' => ['Laboratorio', ['read', 'write', 'approve']],
@@ -28,10 +29,12 @@ class AccessControlSeeder extends Seeder
             'maintenance' => ['Mantenimiento', ['read', 'write', 'approve']],
             'engineering' => ['Ingeniería', ['read', 'write']],
             'governance' => ['Gobierno documental', ['read', 'write', 'approve']],
+            'validation' => ['Validación y firmas', ['read', 'write', 'approve']],
+            'integrations' => ['Integraciones', ['read', 'write', 'admin']],
             'audit' => ['Auditoría', ['read']],
             'continuity' => ['Continuidad', ['read', 'admin']],
             'administration' => ['Configuración', ['read', 'write']],
-            'costs' => ['Costos', ['read', 'write']],
+            'costs' => ['Costos', ['read', 'write', 'approve']],
             'users' => ['Usuarios y accesos', ['manage']],
         ];
         $actionNames = ['read' => 'Lectura', 'write' => 'Escritura', 'approve' => 'Aprobación', 'admin' => 'Administración', 'manage' => 'Administración'];
@@ -54,18 +57,20 @@ class AccessControlSeeder extends Seeder
             'admin' => ['Administrador', 'Administración', 'Acceso total, usuarios, seguridad y configuración.', ['*']],
             'operator' => ['Operador de producción', 'Producción', 'Ejecución de piso, materiales y registros operativos.', [
                 'dashboard.read', 'production.read', 'production.write', 'inventory.read', 'inventory.write',
-                'traceability.read', 'environment.read', 'environment.write', 'biosecurity.read', 'biosecurity.write',
+                'logistics.read', 'logistics.write', 'traceability.read', 'environment.read', 'environment.write', 'biosecurity.read', 'biosecurity.write',
             ]],
             'supervisor' => ['Supervisor de producción', 'Producción', 'Planeación diaria, liberación, ejecución y supervisión del turno.', [
                 'dashboard.read', 'planning.read', 'planning.write', 'planning.approve', 'production.read', 'production.write', 'production.approve',
                 'inventory.read', 'inventory.write', 'traceability.read', 'traceability.write', 'quality.read',
+                'logistics.read', 'logistics.write', 'logistics.approve',
                 'environment.read', 'environment.write', 'environment.approve', 'biosecurity.read', 'biosecurity.write', 'biosecurity.approve',
-                'performance.read', 'performance.write', 'engineering.read', 'audit.read', 'costs.read',
+                'performance.read', 'performance.write', 'engineering.read', 'audit.read', 'costs.read', 'validation.read', 'validation.write', 'integrations.read',
             ]],
             'quality' => ['Calidad', 'Calidad', 'Inspección, desviaciones, cuarentena, liberación y certificados.', [
                 'dashboard.read', 'quality.read', 'quality.write', 'quality.approve', 'laboratory.read',
                 'traceability.read', 'inventory.read', 'production.read', 'environment.read', 'biosecurity.read',
-                'governance.read', 'audit.read',
+                'logistics.read', 'logistics.approve',
+                'governance.read', 'governance.write', 'governance.approve', 'validation.read', 'validation.write', 'validation.approve', 'integrations.read', 'audit.read',
             ]],
             'laboratory' => ['Laboratorio', 'Laboratorio', 'Muestras, métodos, resultados y revisión analítica.', [
                 'dashboard.read', 'quality.read', 'laboratory.read', 'laboratory.write', 'laboratory.approve',
@@ -81,16 +86,19 @@ class AccessControlSeeder extends Seeder
             ]],
             'planner' => ['Planeación', 'Planeación', 'Órdenes, prioridades, rutas, capacidad y seguimiento.', [
                 'dashboard.read', 'planning.read', 'planning.write', 'planning.approve', 'production.read',
-                'inventory.read', 'traceability.read', 'engineering.read', 'performance.read', 'costs.read',
+                'inventory.read', 'traceability.read', 'engineering.read', 'performance.read', 'costs.read', 'costs.write', 'integrations.read',
+                'logistics.read', 'logistics.write', 'logistics.approve',
             ]],
             'management' => ['Dirección', 'Dirección', 'Consulta ejecutiva de operación, calidad, costos y cumplimiento.', [
                 'dashboard.read', 'planning.read', 'production.read', 'inventory.read', 'traceability.read', 'quality.read',
+                'logistics.read',
                 'laboratory.read', 'environment.read', 'biosecurity.read', 'performance.read', 'maintenance.read',
-                'engineering.read', 'governance.read', 'audit.read', 'continuity.read', 'administration.read', 'costs.read',
+                'engineering.read', 'governance.read', 'governance.approve', 'validation.read', 'validation.approve', 'integrations.read', 'audit.read', 'continuity.read', 'administration.read', 'costs.read', 'costs.approve',
             ]],
             'it' => ['Tecnologías de información', 'TI', 'Continuidad, parámetros, auditoría y soporte de accesos.', [
                 'dashboard.read', 'audit.read', 'continuity.read', 'continuity.admin', 'administration.read',
-                'administration.write', 'users.manage', 'engineering.read', 'governance.read',
+                'administration.write', 'users.manage', 'engineering.read', 'governance.read', 'governance.write', 'validation.read', 'validation.write',
+                'integrations.read', 'integrations.write', 'integrations.admin',
             ]],
         ];
 

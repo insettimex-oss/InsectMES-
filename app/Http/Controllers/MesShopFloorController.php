@@ -26,7 +26,7 @@ class MesShopFloorController extends Controller
             throw ValidationException::withMessages(['operation' => 'La orden no está liberada para piso.']);
         }
 
-        $workCenterId = $orderOperation->operation->work_center_id;
+        $workCenterId = $orderOperation->planned_work_center_id ?? $orderOperation->operation->work_center_id;
         $this->assertWorkCenterAvailable($workCenterId);
         if (DB::table('production_execution_sessions')->where('production_order_operation_id', $orderOperation->id)->whereIn('status', ['RUNNING', 'PAUSED'])->exists()) {
             throw ValidationException::withMessages(['operation' => 'La operación ya tiene una sesión activa.']);

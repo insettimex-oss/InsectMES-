@@ -61,6 +61,8 @@ const moduleNames: Record<string, string> = {
     maintenance: 'Mantenimiento',
     engineering: 'Ingeniería',
     governance: 'Gobierno',
+    validation: 'Validación y firmas',
+    integrations: 'Integraciones',
     audit: 'Auditoría',
     continuity: 'Continuidad',
     administration: 'Configuración',

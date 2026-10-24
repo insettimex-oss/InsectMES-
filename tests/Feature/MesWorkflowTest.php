@@ -27,7 +27,7 @@ class MesWorkflowTest extends TestCase
 
     public function test_mes_sections_are_available_to_authenticated_users(): void
     {
-        foreach (['parts', 'routing', 'orders', 'control', 'nursery', 'feeding', 'inventory', 'trace', 'quality', 'environment', 'biosecurity', 'mass-balance', 'performance', 'maintenance', 'audit', 'continuity', 'governance', 'parameters', 'costs'] as $section) {
+        foreach (['parts', 'routing', 'orders', 'control', 'nursery', 'feeding', 'inventory', 'logistics', 'trace', 'quality', 'environment', 'biosecurity', 'mass-balance', 'performance', 'maintenance', 'audit', 'continuity', 'governance', 'parameters', 'costs'] as $section) {
             $this->get("/mes/{$section}")->assertOk();
         }
     }

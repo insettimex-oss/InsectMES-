@@ -7,6 +7,7 @@ import {
     Boxes,
     CircleCheck,
     Factory,
+    FileSignature,
     FlaskConical,
     GitBranch,
     MapPin,
@@ -17,6 +18,7 @@ import {
     Sprout,
     Users,
     CalendarClock,
+    Cable,
     ClipboardCheck,
     DatabaseBackup,
     Scale,
@@ -31,6 +33,7 @@ import {
     RotateCcw,
     Timer,
     TriangleAlert,
+    Truck,
 } from 'lucide-react';
 import { MesRecordDialog } from '@/components/mes-record-dialog';
 import {
@@ -64,6 +67,10 @@ import {
     type AccessRole,
     type UserAccount,
 } from '@/pages/mes/user-administration';
+import { LogisticsSection } from '@/pages/mes/logistics-section';
+import { ActualCostsSection } from '@/pages/mes/actual-costs-section';
+import { ValidationSection } from '@/pages/mes/validation-section';
+import { IntegrationSection } from '@/pages/mes/integration-section';
 
 type Part = {
     id: number;
@@ -184,6 +191,34 @@ type SectionData = {
     users?: UserAccount[];
     roles?: AccessRole[];
     permissions?: AccessPermission[];
+    logisticsSummary?: Record<string, string | number>;
+    customers?: Row[];
+    finishedParts?: Row[];
+    salesOrders?: Row[];
+    allocations?: Row[];
+    shipments?: Row[];
+    shipmentItems?: Row[];
+    customerReturns?: Row[];
+    recalls?: Row[];
+    costOrders?: Row[];
+    costEntries?: Row[];
+    costRates?: Row[];
+    costParts?: Row[];
+    costWorkCenters?: Row[];
+    actualCostSummary?: Row;
+    validationProtocols?: Row[];
+    validationRuns?: Row[];
+    validationSteps?: Row[];
+    electronicSignatures?: Row[];
+    approvedValidationProtocols?: Row[];
+    validationOrders?: Row[];
+    validationSummary?: Row;
+    integrationEndpoints?: Row[];
+    integrationMessages?: Row[];
+    integrationAttempts?: Row[];
+    integrationReconciliations?: Row[];
+    activeIntegrationEndpoints?: Row[];
+    integrationSummary?: Row;
     costs?: Array<{
         operation: string;
         material: number;
@@ -268,6 +303,13 @@ const meta: Record<
         description: 'Existencias serializadas, saldo, estado y ubicación.',
         icon: Box,
     },
+    logistics: {
+        title: 'Logística y embarques',
+        kicker: 'ENTREGAR · TRAZABILIDAD COMERCIAL',
+        description:
+            'Pedidos, reserva FEFO, surtido, embarque, devoluciones y retiro por cliente.',
+        icon: Truck,
+    },
     trace: {
         title: 'Genealogía / Trazabilidad',
         kicker: 'INVENTARIO',
@@ -334,6 +376,20 @@ const meta: Record<
             'Alcance, URS, riesgos, métodos, regulación y definición de lote.',
         icon: BookOpenCheck,
     },
+    validation: {
+        title: 'Validación y firmas',
+        kicker: 'GOBERNAR · EVIDENCIA CONTROLADA',
+        description:
+            'Protocolos versionados, ejecución con evidencia y doble firma electrónica independiente.',
+        icon: FileSignature,
+    },
+    integrations: {
+        title: 'Centro de integraciones',
+        kicker: 'PLANTA CONECTADA · INTEROPERABILIDAD',
+        description:
+            'Mensajes idempotentes, reintentos controlados, cuarentena, evidencia de entrega y conciliación.',
+        icon: Cable,
+    },
     parameters: {
         title: 'Parámetros',
         kicker: 'CONFIGURACIÓN',
@@ -341,9 +397,10 @@ const meta: Record<
         icon: Settings2,
     },
     costs: {
-        title: 'Cost Structure',
-        kicker: 'COSTOS',
-        description: 'Costo estándar por kg de larva 17-DOL.',
+        title: 'Costeo real por lote',
+        kicker: 'ERP Y ESCALAMIENTO · COSTOS',
+        description:
+            'Materiales, mano de obra, energía, indirectos y coproductos conciliados por orden.',
         icon: FlaskConical,
     },
     users: {
@@ -1582,49 +1639,8 @@ function Parameters({ parameters = [] }: { parameters?: Parameter[] }) {
     );
 }
 
-function Costs({
-    costs = [],
-    summary,
-}: Pick<SectionData, 'costs' | 'summary'>) {
-    const money = (value: number) =>
-        value.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' });
-    return (
-        <>
-            <div className="cost-summary">
-                {[
-                    ['Costo estándar / kg', summary?.total ?? 0],
-                    ['Materia prima', summary?.material ?? 0],
-                    ['Mano de obra', summary?.labor ?? 0],
-                    ['Indirectos', summary?.overhead ?? 0],
-                ].map(([label, value]) => (
-                    <article key={String(label)}>
-                        <span>{label}</span>
-                        <strong>{money(Number(value))}</strong>
-                    </article>
-                ))}
-            </div>
-            <DataCard title="Costo acumulado por proceso">
-                <Table
-                    headers={[
-                        'Proceso',
-                        'MP / kg',
-                        'MO / kg',
-                        'GIF / kg',
-                        'Proceso / kg',
-                        'Acumulado / kg',
-                    ]}
-                    rows={costs.map((x) => [
-                        x.operation,
-                        money(x.material),
-                        money(x.labor),
-                        money(x.overhead),
-                        money(x.total),
-                        money(x.accumulated),
-                    ])}
-                />
-            </DataCard>
-        </>
-    );
+function Costs({ data }: { data: SectionData }) {
+    return <ActualCostsSection data={data} />;
 }
 
 function DataCard({
@@ -1747,6 +1763,7 @@ export default function Section({
                     locations={data.locations}
                 />
             );
+        if (section === 'logistics') return <LogisticsSection data={data} />;
         if (section === 'orders') return <OrdersSection data={data} />;
         if (section === 'trace') return <TraceSection data={data} />;
         if (section === 'quality')
@@ -1777,10 +1794,12 @@ export default function Section({
         if (section === 'audit') return <AuditSection data={data} />;
         if (section === 'continuity') return <ContinuitySection data={data} />;
         if (section === 'governance') return <GovernanceSection data={data} />;
+        if (section === 'validation') return <ValidationSection data={data} />;
+        if (section === 'integrations')
+            return <IntegrationSection data={data} />;
         if (section === 'parameters')
             return <Parameters parameters={data.parameters} />;
-        if (section === 'costs')
-            return <Costs costs={data.costs} summary={data.summary} />;
+        if (section === 'costs') return <Costs data={data} />;
         return <Empty text="Pantalla no disponible." />;
     };
     return (

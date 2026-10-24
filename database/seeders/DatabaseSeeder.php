@@ -54,7 +54,20 @@ class DatabaseSeeder extends Seeder
         foreach ($locations as [$code, $description, $type]) {
             Location::query()->updateOrCreate(['code' => $code], compact('description', 'type') + ['active' => true]);
             if (str_starts_with($code, 'WC-')) {
-                WorkCenter::query()->updateOrCreate(['code' => $code], compact('description') + ['status' => $code === 'WC-EGG' ? 'PRODUCTION' : 'IDLE', 'active' => true]);
+                WorkCenter::query()->updateOrCreate(['code' => $code], compact('description') + [
+                    'status' => $code === 'WC-EGG' ? 'PRODUCTION' : 'IDLE',
+                    'active' => true,
+                ]);
+            }
+        }
+        if (DB::getSchemaBuilder()->hasTable('work_center_shift_capacities')) {
+            foreach (WorkCenter::query()->where('active', true)->get() as $workCenter) {
+                foreach (DB::table('shifts')->where('active', true)->get() as $shift) {
+                    DB::table('work_center_shift_capacities')->updateOrInsert(
+                        ['work_center_id' => $workCenter->id, 'shift_id' => $shift->id],
+                        ['available_minutes' => 480, 'active' => true, 'created_at' => now(), 'updated_at' => now()],
+                    );
+                }
             }
         }
         for ($level = 0; $level <= 5; $level++) {
@@ -85,7 +98,8 @@ class DatabaseSeeder extends Seeder
                 'work_center_id' => WorkCenter::where('code', $workCenter)->value('id'),
                 'input_part_id' => $input ? Part::where('code', $input)->value('id') : null,
                 'output_part_id' => Part::where('code', $output)->value('id'),
-                'duration_hours' => $duration, 'sort_order' => ($index + 1) * 10, 'active' => true,
+                'duration_hours' => $duration,
+                'sort_order' => ($index + 1) * 10, 'active' => true,
             ]);
         }
 
@@ -108,10 +122,10 @@ class DatabaseSeeder extends Seeder
             }
         }
         $routePart = Part::where('code', 'BSF005')->firstOrFail();
-        foreach ([['WIP-NUR', 'PREMIUM-FEED', 0.48, 'kg'], ['WIP-NUR', 'MP-004', 1.12, 'l'], ['WIP-NUR', 'MP-003', 0.15, 'kg'], ['WIP-LAR17', 'F-001', 4, 'kg']] as [$parent, $component, $quantity, $unit]) {
+        foreach ([['WIP-NUR', 'PREMIUM-FEED', 'NUR', 0.48, 'kg'], ['WIP-NUR', 'MP-004', 'NUR', 1.12, 'l'], ['WIP-NUR', 'MP-003', 'NUR', 0.15, 'kg'], ['WIP-LAR17', 'F-001', 'REA', 4, 'kg']] as [$parent, $component, $operation, $quantity, $unit]) {
             DB::table('bom_lines')->updateOrInsert(
                 ['parent_part_id' => Part::where('code', $parent)->value('id'), 'component_part_id' => Part::where('code', $component)->value('id')],
-                ['quantity_per_unit' => $quantity, 'unit' => $unit, 'active' => true, 'created_at' => now(), 'updated_at' => now()],
+                ['operation_id' => Operation::where('code', $operation)->value('id'), 'quantity_per_unit' => $quantity, 'unit' => $unit, 'active' => true, 'created_at' => now(), 'updated_at' => now()],
             );
         }
 
@@ -191,7 +205,8 @@ class DatabaseSeeder extends Seeder
         }
 
         $demoOrder = ProductionOrder::query()->updateOrCreate(['number' => 'OP-DEMO-001'], [
-            'part_id' => $routePart->id, 'status' => 'PLANNED', 'priority' => 'HIGH',
+            'part_id' => $routePart->id,
+            'status' => 'PLANNED', 'priority' => 'HIGH',
             'planned_quantity' => 250, 'completed_quantity' => 0, 'unit' => $routePart->unit,
             'scheduled_start' => now()->addDay()->startOfDay()->addHours(7),
             'scheduled_end' => now()->addDays(2)->startOfDay()->addHours(18),
@@ -271,5 +286,7 @@ class DatabaseSeeder extends Seeder
                 'updated_at' => now(),
             ]);
         }
+
+        $this->call(AdvancedPlanningSeeder::class);
     }
 }

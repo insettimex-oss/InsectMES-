@@ -297,21 +297,16 @@ def first_page(canvas, doc):
         canvas.drawImage(str(BRAND_LOGO), 22 * mm, height - 36 * mm, width=56 * mm, height=20 * mm, preserveAspectRatio=True, mask="auto", anchor="c")
     canvas.setFillColor(colors.HexColor("#D0E8D9"))
     canvas.setFont(FONT, 8)
-    canvas.drawString(22 * mm, 17 * mm, "Documento de trabajo - 20 octubre 2026")
+    canvas.drawString(22 * mm, 17 * mm, "Documento de trabajo - 23 octubre 2026")
     canvas.restoreState()
 
 
 def later_pages(canvas, doc):
     canvas.saveState()
-    width, height = A4
-    canvas.setStrokeColor(LINE)
-    canvas.line(18 * mm, height - 14 * mm, width - 18 * mm, height - 14 * mm)
-    canvas.setFillColor(MID_GREEN)
-    canvas.setFont(FONT_BOLD, 7.5)
-    canvas.drawString(18 * mm, height - 10 * mm, "INSECTMES | ROADMAP MES PARA MOSCA SOLDADO NEGRO")
+    width, _ = A4
     canvas.setFillColor(MUTED)
     canvas.setFont(FONT, 7.5)
-    canvas.drawRightString(width - 18 * mm, 10 * mm, f"Página {doc.page}")
+    canvas.drawRightString(width - 22 * mm, 10 * mm, str(doc.page))
     canvas.restoreState()
 
 
@@ -660,14 +655,14 @@ def build_story() -> list:
 
 
 def build_updated_story() -> list:
-    """Estado posterior al avance de calidad y confiabilidad."""
+    """Estado posterior al avance de validación e interoperabilidad."""
     story: list = [
         Spacer(1, 50 * mm),
         P("Estado de avance y brechas restantes", "CoverTitle"),
         P("InsectMES para mosca soldado negro", "CoverTitle"),
         Spacer(1, 4 * mm),
         P(
-            "Actualización del diagnóstico: aprobaciones de Fase 0 confirmadas, laboratorio interno y mantenimiento por condición incorporados; requisitos documentales y brechas restantes para una operación industrial de Hermetia illucens.",
+            "Actualización del diagnóstico: núcleo MES, control de piso, accesos por rol, logística trazable, costeo real, validación con firma electrónica y un hub de integración confiable incorporados; requisitos documentales y brechas restantes para una operación industrial de Hermetia illucens.",
             "CoverSub",
         ),
         Spacer(1, 18 * mm),
@@ -676,11 +671,11 @@ def build_updated_story() -> list:
                 [P("RESULTADO", "TableHeader"), P("SIGUIENTE META", "TableHeader")],
                 [
                     Paragraph("Avance funcional verificado", ParagraphStyle("coverUpdated", fontName=FONT_BOLD, fontSize=17, textColor=WHITE)),
-                    Paragraph("Validación e integración", ParagraphStyle("coverNext", fontName=FONT_BOLD, fontSize=17, textColor=WHITE)),
+                    Paragraph("Industrialización comprobada", ParagraphStyle("coverNext", fontName=FONT_BOLD, fontSize=17, textColor=WHITE)),
                 ],
                 [
-                    P("Laboratorio interno, métodos, muestras, resultados, cuarentena; condición de activos, OT automática, MTTR y MTBF.", "CoverSub"),
-                    P("Evidencia documental completa, piloto real, LIMS externo, ERP/planta conectada y alta disponibilidad.", "CoverSub"),
+                    P("Laboratorio, confiabilidad, roles, FEFO, logística, costos, firmas, mensajería y optimización multi-centro.", "CoverSub"),
+                    P("Evidencia documental, piloto real, conectores externos, PostgreSQL y alta disponibilidad.", "CoverSub"),
                 ],
             ],
             colWidths=[78 * mm, 78 * mm],
@@ -703,12 +698,12 @@ def build_updated_story() -> list:
     story += [
         P("1. Estado ejecutivo actualizado", "H1x"),
         P(
-            "InsectMES conserva el núcleo P0 y amplía la Fase 1 con laboratorio interno trazable para microbiología, química y estabilidad, además de mantenimiento por condición, bloqueo automático, OT correctiva y KPIs MTTR/MTBF. Las aprobaciones de Fase 0 fueron confirmadas como completadas; su expediente sigue en verificación documental.",
+            "InsectMES conserva el núcleo P0, amplía la Fase 1 e incorpora protocolos versionados, doble firma electrónica, un hub de integración auditable y selección automática entre centros primarios y alternos aprobados. Las aprobaciones de Fase 0 fueron confirmadas como completadas; su expediente sigue en verificación documental.",
             "Callout",
         ),
         Table(
             [[
-                maturity_card("Madurez técnica", "4 / 5", "MES funcional para piloto, con calidad, mantenimiento y desempeño industrial trazables.", GREEN),
+                maturity_card("Madurez técnica", "4 / 5", "MES funcional para piloto e interoperabilidad controlada; falta infraestructura productiva probada.", GREEN),
                 maturity_card("Madurez de negocio", "3 / 5", "Aprobaciones realizadas; faltan metadatos y evidencia vinculada para cerrar documentalmente Fase 0.", AMBER),
             ]],
             colWidths=[82 * mm, 82 * mm],
@@ -717,14 +712,14 @@ def build_updated_story() -> list:
         ),
         P("Dictamen", "H2x"),
         P(
-            "Puede utilizarse como MES de piloto para una línea BSF definida. Aún no debe declararse MES industrial completo para toda la empresa porque faltan el cierre documental de Fase 0, validación con lotes reales, integración con LIMS/equipos de laboratorio, planificación finita, integraciones automáticas, costos reales, alta disponibilidad y evidencia regulatoria por producto y mercado.",
+            "Puede utilizarse como MES de piloto para una línea BSF definida. Aún no debe declararse MES industrial completo para toda la empresa porque faltan el cierre documental de Fase 0, validación de ventanas biológicas con lotes reales, conectores efectivos con Plex, LIMS y equipos, PostgreSQL y alta disponibilidad probados, además de evidencia regulatoria por producto y mercado.",
         ),
         P("Validación técnica ejecutada", "H2x"),
         *bullets([
-            "61 pruebas automatizadas y 277 aserciones aprobadas.",
+            "88 pruebas automatizadas ejecutadas: 86 aprobadas, 2 omitidas y 506 aserciones verificadas.",
             "Análisis estático PHP sin errores y compilación de React/TypeScript satisfactoria.",
             "Migración SQLite y datos iniciales reproducibles.",
-            "Respaldo real con checksum SHA-256 e integrity_check satisfactorio.",
+            "Respaldo real con checksum SHA-256 e integrity_check satisfactorio; restauración aislada en 1 segundo con 94 tablas verificadas.",
             "Revisión visual en tema claro y oscuro, incluido sidebar retraíble.",
         ]),
         PageBreak(),
@@ -739,7 +734,7 @@ def build_updated_story() -> list:
         ["Ambiente", "Límites por etapa, captura manual o sensor, serie temporal, alarma y reconocimiento con evidencia.", "Implementado"],
         ["Balance de masa", "Sustrato, agua, biomasa, larva, frass, coproducto, evaporación, residuo y tolerancia.", "Implementado"],
         ["Auditoría", "Eventos append-only con usuario, fecha, entidad, antes/después, razón, IP y agente.", "Implementado"],
-        ["Continuidad SQLite", "Respaldo programado y manual, checksum, integridad, retención y registro de ejecución.", "Implementado"],
+        ["Continuidad SQLite", "Respaldo programado y manual, checksum, integridad y retención; simulacro aislado de restauración con tiempo, checksum, integridad y conteo de tablas registrados.", "Implementado"],
         ["Alimentación y escaneo", "Larvero y sustrato por serial, consumo de inventario, materia seca, orden, operador y bitácora auditable.", "Implementado F1"],
         ["Desviaciones y CAPA", "Contención, cuarentena, causa raíz, acciones correctiva/preventiva, responsable, vencimiento y efectividad.", "Implementado F1"],
         ["Mantenimiento", "Activos, criticidad, preventivo, correctivo, calibración, bloqueo, liberación y minutos de paro.", "Implementado F1"],
@@ -749,17 +744,28 @@ def build_updated_story() -> list:
         ["Repuestos", "Catálogo MRO, existencia, punto de reorden y consumo trazable contra orden de mantenimiento.", "Implementado F1"],
         ["Laboratorio interno", "Métodos de microbiología, química y estabilidad; recepción de muestras; resultados PASS/FAIL/REVIEW y cuarentena automática.", "Implementado F1"],
         ["Mantenimiento por condición", "Lecturas por activo, límites de advertencia/crítico, bloqueo, OT automática y KPIs observados MTTR/MTBF.", "Implementado F1"],
+        ["Roles y permisos", "Diez roles por área, permisos de lectura/escritura/aprobación, excepciones por usuario, bloqueo de cuentas y cambio obligatorio de contraseña.", "Implementado F1"],
+        ["Logística comercial", "Clientes, pedidos, reserva FEFO, prioridad de ubicación, surtido, embarque, devolución, cuarentena y retiro hacia adelante por lote y cliente.", "Implementado F1"],
+        ["Costo real por lote", "Tarifas vigentes, alimentación y tiempo real automáticos, energía e indirectos capturables, crédito de coproducto, costo unitario y cierre auditado.", "Implementado F1"],
+        ["Validación y firma electrónica", "Protocolos versionados, copia controlada de pasos, evidencia por resultado, reautenticación, segregación ejecutor/aprobador, doble firma y huella SHA-256 inmutable.", "Implementado F2"],
+        ["Planeación finita", "Capacidad por centro y turno, prioridad de orden, precedencia de operaciones, división en segmentos, detección de tardanza y de operaciones sin capacidad; cada corrida conserva evidencia y supera a la anterior.", "Implementado F2"],
+        ["Planeación BSF avanzada", "Campañas por familia, cambios y limpieza con tiempo reservado, BOM por operación, suministro futuro confirmado, asignación de materiales, ventanas de edad aprobadas y ocupación paralela para etapas biológicas continuas.", "Implementado F2"],
+        ["Optimización multi-centro", "Centros alternos con calificación, prioridad, eficiencia y vigencia; selección por mejor término respetando capacidad, campaña y ventana biológica; el centro elegido pasa al control de piso y queda trazado en la corrida.", "Implementado F2"],
+        ["Hub de integración", "Catálogo de endpoints sin secretos, bandejas de entrada/salida idempotentes, hash SHA-256, reintentos exponenciales, cuarentena, bitácora de intentos, conciliación y procesamiento programado. LOCAL y FILE están verificados; HTTP está preparado.", "Implementado F2"],
     ]
     story += [
-        P("2. Capacidades P0 y Fase 1 implementadas", "H1x"),
+        P("2. Capacidades P0, Fase 1 y controles Fase 2", "H1x"),
         P("Estas capacidades se retiran de la lista de brechas pendientes porque ya cuentan con modelo de datos, reglas de negocio, interfaz y cobertura de pruebas."),
         table(["Dominio", "Evidencia funcional", "Estado"], implemented_rows, [39 * mm, 99 * mm, 26 * mm]),
-        P("Límite de la afirmación", "H2x"),
-        P(
-            "Implementado significa disponible y probado en la aplicación. No significa validado para cada producto, mercado, instalación, equipo o requisito sanitario. La validación operativa debe ejecutarse con lotes reales y responsables designados.",
-            "Callout",
+        KeepTogether(
+            [
+                P("Límite de la afirmación", "H2x"),
+                P(
+                    "Implementado significa disponible y probado en la aplicación. No significa validado para cada producto, mercado, instalación, equipo o requisito sanitario. La validación operativa debe ejecutarse con lotes reales y responsables designados.",
+                    "Callout",
+                ),
+            ]
         ),
-        PageBreak(),
     ]
 
     remaining_rows = [
@@ -767,17 +773,13 @@ def build_updated_story() -> list:
         ["Piloto y validación", "Ejecutar lotes reales, pruebas por rol, recall, restauración y aceptación del piloto con evidencia.", "P0 de negocio"],
         ["Calidad avanzada restante", "Validar límites y métodos, administrar equipos/reactivos y conectar un LIMS externo; consolidar el programa longitudinal de estabilidad.", "P1"],
         ["Mantenimiento restante", "Matriz de habilidades, planes predictivos, integración de sensores y contadores automáticos; validar KPIs con historial real.", "P1"],
-        ["Planificación avanzada", "Capacidad finita, campañas, restricciones biológicas y optimización automática multi-centro.", "P1"],
-        ["Integraciones", "ERP, básculas, PLC/SCADA, sensores MQTT/OPC UA, impresoras, laboratorio y almacenes.", "P1"],
-        ["Costo real", "Energía, mano de obra real, sustrato, depreciación, mermas, frass y aceite por lote.", "P1"],
-        ["Logística", "FEFO, ubicación dirigida, preparación, embarque, cliente, devolución y retiro comercial.", "P1"],
-        ["Firma electrónica", "Reautenticación, doble aprobación, segregación avanzada y sellado de registros críticos.", "P1"],
-        ["Alta disponibilidad", "PostgreSQL, copia fuera del equipo, monitoreo, RPO/RTO y simulacro formal de recuperación.", "P1"],
+        ["Conectores externos", "Configurar contratos y credenciales reales, mapear datos y demostrar reconocimientos y conciliación con Plex ERP, básculas, PLC/SCADA, MQTT/OPC UA, impresoras, LIMS y almacenes.", "P1"],
+        ["Continuidad productiva", "Migrar y probar PostgreSQL, copia fuera del equipo, monitoreo, RPO/RTO de negocio y recuperación sobre infraestructura distinta al servidor local.", "P1"],
         ["Analítica", "KPIs biológicos, SPC, predicción de cosecha, energía, capacidad y alertas por excepción.", "P2"],
     ]
     story += [
         P("3. Brechas que aún faltan", "H1x"),
-        P("La lista retira el control de piso conectado, laboratorio interno, estabilidad registrable, mantenimiento por condición y KPIs MTTR/MTBF, además de las capacidades ya implementadas. Conserva únicamente verificación documental, validación real, capacidades avanzadas e integración."),
+        P("La lista retira control de piso, roles, logística comercial, costeo real, firma electrónica, planeación finita, campañas, cambios, suministro futuro, ventanas biológicas, optimización multi-centro y el motor genérico de integración. Conserva únicamente verificación documental, validación real, conectores con sistemas físicos o externos y continuidad empresarial."),
         table(["Dominio", "Trabajo pendiente", "Prioridad"], remaining_rows, [39 * mm, 99 * mm, 26 * mm]),
         PageBreak(),
     ]
@@ -806,7 +808,7 @@ def build_updated_story() -> list:
             "Provocar una cuarentena, una alarma ambiental y un evento de bioseguridad controlados.",
             "Realizar división y fusión y demostrar trazabilidad hacia atrás y hacia adelante.",
             "Cerrar el balance de masa dentro de tolerancia aprobada.",
-            "Restaurar el respaldo en un entorno separado y documentar tiempo y resultado.",
+            "Repetir el simulacro de restauración con responsables y documentar aceptación del RTO; después probarlo sobre infraestructura externa.",
         ]),
         PageBreak(),
     ]
@@ -840,21 +842,22 @@ def build_updated_story() -> list:
         ["Verificación Fase 0", "1-2 semanas", "Incorporar metadatos y referencias de evidencia existentes; revisar integridad del expediente sin repetir aprobaciones.", "Expediente verificable"],
         ["Piloto validado", "4-8 semanas", "Lotes reales, pruebas de usuario, recall, desviaciones controladas y restauración.", "Un lote sin registros paralelos críticos"],
         ["Completar Fase 1 avanzada", "6-10 semanas", "Validación de métodos/límites, equipos y reactivos, LIMS externo, sensores, contadores automáticos y mantenimiento predictivo.", "Laboratorio y confiabilidad conciliados"],
-        ["Planta conectada", "8-14 semanas", "Sensores, básculas, PLC/SCADA, alarmas, colas, OEE y monitoreo.", "Datos automáticos conciliados"],
-        ["ERP y escalamiento", "8-14 semanas", "Demanda, compras, costos reales, logística, PostgreSQL y HA.", "Cierre sin doble captura"],
-        ["Optimización", "Continuo", "SPC, predicción de cosecha, receta, energía, capacidad y analítica.", "Mejora medible"],
+        ["Planta conectada", "8-14 semanas", "Usar el hub existente para enlazar sensores, básculas, PLC/SCADA, alarmas y OEE con contratos y evidencia reales.", "Datos automáticos conciliados"],
+        ["ERP y escalamiento", "8-14 semanas", "Conectar Plex para demanda, compras y conciliación; migrar a PostgreSQL y repetir sobre infraestructura externa el simulacro ya probado en SQLite.", "Cierre sin doble captura"],
+        ["Optimización", "Continuo", "SPC, predicción de cosecha, receta, energía, capacidad y analítica avanzada.", "Mejora medible"],
     ]
     story += [
-        P("6. Roadmap restante", "H1x"),
+        P("6. Plan de trabajo restante", "H1x"),
         table(["Etapa", "Duración", "Entregables", "Salida"], roadmap_rows, [31 * mm, 25 * mm, 70 * mm, 38 * mm]),
         P("Prioridades de los próximos 30 días", "H2x"),
         *bullets([
             "Completar los campos documentales de Fase 0 con la evidencia ya aprobada y seleccionar un producto, línea y turno para el piloto.",
             "Completar datos maestros reales, límites, instrumentos y responsables.",
-            "Crear guiones de prueba por rol y capacitar operadores y supervisores.",
+            "Configurar en el módulo de validación los guiones por rol y capacitar operadores y supervisores.",
             "Ejecutar trazabilidad, cuarentena, alarma, bioseguridad, masa y recuperación.",
             "Definir RPO/RTO, copia externa y decisión de migración a PostgreSQL.",
-            "Validar en piso alimentación, CAPA, COA, retención, repuestos, paros y OEE con responsables reales.",
+            "Seleccionar un flujo con Plex y uno con equipo de planta para configurar endpoints HTTP reales y comprobar idempotencia, reintento y conciliación extremo a extremo.",
+            "Validar en piso alimentación, CAPA, COA, retención, repuestos, paros, OEE, logística y costeo con responsables reales.",
         ]),
         P("Decisión recomendada", "H2x"),
         P(
@@ -873,13 +876,13 @@ def build_updated_story() -> list:
             "Balance de masa e inventario concilian dentro de tolerancias firmadas.",
             "Mantenimiento y calibración condicionan uso de activos e instrumentos.",
             "Datos manuales y automáticos tienen dueño, calidad, alarma, contingencia y monitoreo.",
-            "ERP y automatización operan con mensajes idempotentes, reintentos y conciliación.",
+            "Plex ERP y automatización operan sobre el hub existente con contratos, mensajes idempotentes, reintentos y conciliación demostrados extremo a extremo.",
             "RPO/RTO, respaldo externo, restauración, alta disponibilidad y soporte han sido probados.",
             "La matriz regulatoria y los expedientes de producto están aprobados para cada mercado.",
         ]),
         Spacer(1, 5 * mm),
         P(
-            "Conclusión: InsectMES ya cubre el núcleo P0 y amplía la Fase 1 con laboratorio interno y confiabilidad por condición. La brecha principal es ahora completar el expediente documental, validar en planta y conectar sistemas, equipos y laboratorios externos.",
+            "Conclusión: InsectMES ya cubre el núcleo P0, amplía la Fase 1 e incorpora validación controlada, firma electrónica, planeación finita y BSF por campañas, cambios, materiales, ventanas biológicas y centros alternos, además de un hub de integración probado localmente. La brecha principal es completar el expediente documental, ejecutar y aprobar el piloto con datos reales, conectar Plex, equipos y laboratorios, y demostrar la continuidad sobre infraestructura productiva.",
             "Callout",
         ),
         P("Documentos entregados", "H2x"),

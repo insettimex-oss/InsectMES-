@@ -9,3 +9,4 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('mes:backup --prune=14')->dailyAt('02:00')->withoutOverlapping();
+Schedule::command('mes:integrations-dispatch --limit=100')->everyMinute()->withoutOverlapping();

@@ -24,6 +24,7 @@ class MesP0Controller extends Controller
     {
         $data = $request->validate([
             'part_id' => ['required', 'exists:parts,id'],
+            'campaign_id' => ['nullable', 'exists:production_campaigns,id'],
             'planned_quantity' => ['required', 'numeric', 'gt:0'],
             'priority' => ['required', Rule::in(['LOW', 'NORMAL', 'HIGH', 'CRITICAL'])],
             'scheduled_start' => ['required', 'date'],
@@ -36,6 +37,15 @@ class MesP0Controller extends Controller
             throw ValidationException::withMessages([
                 'part_id' => 'La parte seleccionada no está disponible.',
             ]);
+        }
+        if ($data['campaign_id'] ?? null) {
+            $campaign = DB::table('production_campaigns')->where('id', $data['campaign_id'])->where('active', true)->first();
+            $campaignPartId = $campaign === null ? null : get_object_vars($campaign)['part_id'];
+            if ($campaign === null || ($campaignPartId !== null && (int) $campaignPartId !== (int) $part->id)) {
+                throw ValidationException::withMessages([
+                    'campaign_id' => 'La campaña no está activa o corresponde a otro producto.',
+                ]);
+            }
         }
 
         $routes = DB::table('process_routes')->where('part_id', $part->id)->orderBy('sequence')->get();
@@ -65,7 +75,11 @@ class MesP0Controller extends Controller
                     'created_at' => now(), 'updated_at' => now(),
                 ]);
             }
-            $components = DB::table('bom_lines')->where('active', true)->get()->groupBy('component_part_id');
+            $components = DB::table('bom_lines')
+                ->where('active', true)
+                ->whereIn('operation_id', $routes->pluck('operation_id'))
+                ->get()
+                ->groupBy('component_part_id');
             foreach ($components as $partId => $lines) {
                 $required = $lines->sum(fn ($line): float => (float) $line->quantity_per_unit * (float) $data['planned_quantity']);
                 $component = DB::table('parts')->where('id', $partId)->first();
@@ -311,7 +325,27 @@ class MesP0Controller extends Controller
         $exit = Artisan::call('mes:backup');
         $this->audit->record($request, 'BACKUP_EXECUTED', 'backup_runs', 'Respaldo manual solicitado desde la aplicación', null, ['exit_code' => $exit]);
 
-        return $exit === 0 ? $this->success('Respaldo creado y verificado correctamente.') : back()->withErrors(['backup' => Artisan::output()]);
+        return $exit === 0 ? $this->success('Respaldo creado con checksum e integridad verificados. Falta ejecutar el simulacro de restauración.') : back()->withErrors(['backup' => Artisan::output()]);
+    }
+
+    public function runRestoreDrill(Request $request): RedirectResponse
+    {
+        abort_unless($request->user()->hasPermission('continuity.admin'), 403);
+        $data = $request->validate([
+            'backup_run_id' => ['nullable', 'exists:backup_runs,id'],
+            'rto_target_seconds' => ['nullable', 'integer', 'between:1,86400'],
+        ]);
+        $arguments = [
+            '--user' => $request->user()->id,
+            '--rto' => (int) ($data['rto_target_seconds'] ?? 300),
+        ];
+        if (isset($data['backup_run_id'])) {
+            $arguments['backup'] = (int) $data['backup_run_id'];
+        }
+        $exit = Artisan::call('mes:restore-drill', $arguments);
+        $this->audit->record($request, 'RESTORE_DRILL_EXECUTED', 'restore_drills', 'Simulacro de restauración aislada solicitado desde la aplicación', null, ['exit_code' => $exit, 'backup_run_id' => $data['backup_run_id'] ?? null]);
+
+        return $exit === 0 ? $this->success('Simulacro completado: checksum, integridad y tiempo de restauración registrados.') : back()->withErrors(['restore' => Artisan::output()]);
     }
 
     private function genealogy(string $group, int $parent, int $child, string $action, float $quantity, string $unit, Request $request, string $reason): void

@@ -11,7 +11,7 @@ class MesBackupCommand extends Command
 {
     protected $signature = 'mes:backup {--prune=14 : Días de respaldos a conservar}';
 
-    protected $description = 'Crea y verifica un respaldo consistente de la base SQLite de InsectMES';
+    protected $description = 'Crea y verifica la integridad de un respaldo SQLite de InsectMES';
 
     public function handle(): int
     {
@@ -25,7 +25,7 @@ class MesBackupCommand extends Command
         $directory = storage_path('app/private/backups');
         $started = now();
         $runId = DB::table('backup_runs')->insertGetId([
-            'status' => 'RUNNING', 'started_at' => $started, 'created_at' => $started, 'updated_at' => $started,
+            'status' => 'RUNNING', 'driver' => 'sqlite', 'started_at' => $started, 'created_at' => $started, 'updated_at' => $started,
         ]);
 
         try {
@@ -52,7 +52,8 @@ class MesBackupCommand extends Command
 
             DB::table('backup_runs')->where('id', $runId)->update([
                 'status' => 'COMPLETED', 'path' => $path, 'checksum' => hash_file('sha256', $path),
-                'size_bytes' => filesize($path), 'restore_verified' => true, 'completed_at' => now(), 'updated_at' => now(),
+                'size_bytes' => filesize($path), 'integrity_verified' => true, 'restore_verified' => false,
+                'restore_verified_at' => null, 'completed_at' => now(), 'updated_at' => now(),
             ]);
             $this->prune($directory, max((int) $this->option('prune'), 1));
             $this->info("Respaldo verificado: {$path}");

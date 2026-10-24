@@ -60,6 +60,7 @@ class MesDataService
             'nursery' => ['batches' => NurseryBatch::with('container.part')->whereNull('closed_at')->orderBy('level')->get(), 'events' => DB::table('nursery_events as e')->join('nursery_batches as b', 'b.id', '=', 'e.nursery_batch_id')->join('containers as c', 'c.id', '=', 'b.container_id')->leftJoin('users as u', 'u.id', '=', 'e.user_id')->orderByDesc('e.occurred_at')->limit(15)->get(['e.id', 'e.occurred_at', 'c.serial', 'e.action', 'e.notes', 'u.name as operator'])],
             'feeding' => $this->feeding(),
             'inventory' => ['containers' => Container::with(['part', 'location'])->orderByDesc('active')->orderBy('serial')->get(), 'parts' => Part::where('active', true)->orderBy('code')->get(), 'locations' => DB::table('locations')->where('active', true)->orderBy('code')->get()],
+            'logistics' => $this->logistics(),
             'trace' => ['events' => DB::table('genealogy_events as g')->leftJoin('containers as p', 'p.id', '=', 'g.parent_container_id')->join('containers as c', 'c.id', '=', 'g.child_container_id')->leftJoin('operations as o', 'o.id', '=', 'g.operation_id')->leftJoin('production_orders as po', 'po.id', '=', 'g.production_order_id')->orderByDesc('g.occurred_at')->get(['g.id', 'g.event_group', 'g.occurred_at', 'p.serial as parent', 'c.serial as child', 'o.name as operation', 'po.number as production_order', 'g.action', 'g.quantity', 'g.unit', 'g.reason']), 'containers' => Container::with(['part', 'location'])->where('active', true)->where('quarantined', false)->orderBy('serial')->get()],
             'quality' => $this->quality(),
             'environment' => $this->environment(),
@@ -68,13 +69,63 @@ class MesDataService
             'performance' => $this->performance(),
             'maintenance' => $this->maintenance(),
             'audit' => ['auditEvents' => DB::table('audit_events as a')->leftJoin('users as u', 'u.id', '=', 'a.user_id')->orderByDesc('a.occurred_at')->limit(250)->get(['a.id', 'a.occurred_at', 'a.event', 'a.auditable_type', 'a.auditable_id', 'a.reason', 'a.ip_address', 'u.name as user'])],
-            'continuity' => ['backupRuns' => DB::table('backup_runs')->orderByDesc('started_at')->limit(30)->get(), 'database' => basename((string) config('database.connections.sqlite.database')), 'schedule' => 'Diario 02:00', 'retention' => '14 días'],
+            'continuity' => [
+                'backupRuns' => DB::table('backup_runs')->orderByDesc('started_at')->limit(30)->get(),
+                'restoreDrills' => DB::table('restore_drills as d')->leftJoin('backup_runs as b', 'b.id', '=', 'd.backup_run_id')->leftJoin('users as u', 'u.id', '=', 'd.performed_by')->orderByDesc('d.started_at')->limit(30)->get(['d.*', 'b.path as backup_path', 'u.name as performed_by_name']),
+                'database' => DB::connection()->getDriverName() === 'sqlite' ? basename((string) config('database.connections.sqlite.database')) : DB::connection()->getDriverName(),
+                'schedule' => 'Diario 02:00',
+                'retention' => '14 días',
+            ],
             'governance' => ['documents' => $this->governanceDocuments()],
+            'validation' => $this->validation(),
+            'integrations' => $this->integrations(),
             'parameters' => ['parameters' => Parameter::orderBy('scope')->orderBy('code')->get()],
             'costs' => $this->costs(),
             'users' => $this->users(),
             default => [],
         };
+    }
+
+    /** @return array<string, mixed> */
+    private function logistics(): array
+    {
+        return [
+            'logisticsSummary' => [
+                'draftOrders' => DB::table('sales_orders')->whereIn('status', ['DRAFT', 'PICKING'])->count(),
+                'readyOrders' => DB::table('sales_orders')->where('status', 'READY')->count(),
+                'shippedToday' => DB::table('shipments')->where('status', 'SHIPPED')->whereDate('shipped_at', today())->count(),
+                'openReturns' => DB::table('customer_returns')->where('status', 'OPEN')->count(),
+                'activeRecalls' => DB::table('recall_events')->where('status', '!=', 'CLOSED')->count(),
+            ],
+            'customers' => DB::table('customers')->where('active', true)->orderBy('name')->get(),
+            'finishedParts' => Part::query()->where('active', true)->whereIn('type', ['Producto Terminado', 'Coproducto', 'Producto'])->orderBy('code')->get(),
+            'salesOrders' => DB::table('sales_orders as o')
+                ->join('customers as c', 'c.id', '=', 'o.customer_id')
+                ->join('sales_order_lines as l', 'l.sales_order_id', '=', 'o.id')
+                ->join('parts as p', 'p.id', '=', 'l.part_id')
+                ->orderByRaw("CASE o.status WHEN 'READY' THEN 1 WHEN 'PICKING' THEN 2 WHEN 'DRAFT' THEN 3 ELSE 4 END")
+                ->orderBy('o.promised_at')
+                ->get(['o.id', 'o.number', 'o.status', 'o.priority', 'o.requested_at', 'o.promised_at', 'o.notes', 'c.code as customer_code', 'c.name as customer', 'l.id as line_id', 'l.ordered_quantity', 'l.allocated_quantity', 'l.shipped_quantity', 'l.unit', 'p.code as part_code', 'p.description as part_name']),
+            'allocations' => DB::table('shipment_allocations as a')
+                ->join('sales_order_lines as l', 'l.id', '=', 'a.sales_order_line_id')
+                ->join('sales_orders as o', 'o.id', '=', 'l.sales_order_id')
+                ->join('containers as c', 'c.id', '=', 'a.container_id')
+                ->leftJoin('locations as loc', 'loc.id', '=', 'c.location_id')
+                ->leftJoin('users as u', 'u.id', '=', 'a.picked_by')
+                ->whereIn('a.status', ['ALLOCATED', 'PICKED'])
+                ->orderByRaw('CASE WHEN c.expires_at IS NULL THEN 1 ELSE 0 END')->orderBy('c.expires_at')->orderBy('loc.pick_priority')
+                ->get(['a.id', 'a.status', 'a.quantity', 'a.picked_at', 'o.id as order_id', 'o.number as order_number', 'c.id as container_id', 'c.serial', 'c.lot_code', 'c.expires_at', 'c.quantity_current', 'l.unit', 'loc.code as location', 'u.name as picked_by']),
+            'shipments' => DB::table('shipments as s')
+                ->join('sales_orders as o', 'o.id', '=', 's.sales_order_id')
+                ->join('customers as c', 'c.id', '=', 'o.customer_id')
+                ->leftJoin('shipment_items as i', 'i.shipment_id', '=', 's.id')
+                ->groupBy('s.id', 's.number', 's.status', 's.carrier', 's.tracking_number', 's.vehicle', 's.seal', 's.shipped_at', 'o.number', 'c.name')
+                ->orderByDesc('s.shipped_at')
+                ->get(['s.id', 's.number', 's.status', 's.carrier', 's.tracking_number', 's.vehicle', 's.seal', 's.shipped_at', 'o.number as order_number', 'c.name as customer', DB::raw('count(i.id) as item_count'), DB::raw('coalesce(sum(i.quantity), 0) as total_quantity')]),
+            'shipmentItems' => DB::table('shipment_items as i')->join('shipments as s', 's.id', '=', 'i.shipment_id')->join('containers as c', 'c.id', '=', 'i.container_id')->orderByDesc('i.id')->get(['i.id', 'i.shipment_id', 's.number as shipment_number', 'c.id as container_id', 'c.serial', 'i.quantity', 'i.unit']),
+            'customerReturns' => DB::table('customer_returns as r')->join('customers as c', 'c.id', '=', 'r.customer_id')->leftJoin('shipments as s', 's.id', '=', 'r.shipment_id')->leftJoin('containers as x', 'x.id', '=', 'r.container_id')->orderByDesc('r.received_at')->get(['r.id', 'r.number', 'r.quantity', 'r.unit', 'r.reason', 'r.disposition', 'r.status', 'r.received_at', 'r.notes', 'c.name as customer', 's.number as shipment_number', 'x.serial as container']),
+            'recalls' => DB::table('recall_events as r')->leftJoin('recall_impacted_containers as i', 'i.recall_event_id', '=', 'r.id')->leftJoin('customers as c', 'c.id', '=', 'i.customer_id')->groupBy('r.id', 'r.number', 'r.type', 'r.reference_type', 'r.reference', 'r.reason', 'r.status', 'r.started_at', 'r.closed_at')->orderByDesc('r.started_at')->get(['r.id', 'r.number', 'r.type', 'r.reference_type', 'r.reference', 'r.reason', 'r.status', 'r.started_at', 'r.closed_at', DB::raw('count(distinct i.container_id) as impacted_containers'), DB::raw('count(distinct c.id) as impacted_customers')]),
+        ];
     }
 
     /** @return array<string, mixed> */
@@ -115,6 +166,9 @@ class MesDataService
     /** @return array<string, mixed> */
     private function orders(): array
     {
+        $currentRun = DB::table('planning_runs')->where('status', 'CURRENT')->latest('id')->first();
+        $currentRunId = $currentRun === null ? null : (int) get_object_vars($currentRun)['id'];
+
         return [
             'orders' => ProductionOrder::with(['part', 'operations.operation', 'massBalance'])->orderByRaw("CASE priority WHEN 'CRITICAL' THEN 1 WHEN 'HIGH' THEN 2 WHEN 'NORMAL' THEN 3 ELSE 4 END")->orderBy('scheduled_start')->get(),
             'parts' => Part::where('active', true)
@@ -122,6 +176,21 @@ class MesDataService
                 ->whereIn('id', DB::table('process_routes')->select('part_id')->distinct())
                 ->orderBy('code')
                 ->get(),
+            'planningRun' => $currentRun,
+            'planningRuns' => DB::table('planning_runs')->leftJoin('users', 'users.id', '=', 'planning_runs.created_by')->orderByDesc('planning_runs.id')->limit(10)->get(['planning_runs.*', 'users.name as created_by_name']),
+            'planningCapacities' => DB::table('work_center_shift_capacities as c')->join('work_centers as w', 'w.id', '=', 'c.work_center_id')->join('shifts as s', 's.id', '=', 'c.shift_id')->orderBy('w.code')->orderBy('s.starts_at')->get(['c.id', 'c.work_center_id', 'c.shift_id', 'c.available_minutes', 'c.active', 'w.code as work_center', 'w.description as work_center_name', 's.code as shift', 's.name as shift_name', 's.starts_at', 's.ends_at']),
+            'planningSegments' => $currentRunId === null ? collect() : DB::table('production_schedule_segments as g')->join('production_order_operations as po', 'po.id', '=', 'g.production_order_operation_id')->join('production_orders as p', 'p.id', '=', 'po.production_order_id')->join('operations as o', 'o.id', '=', 'po.operation_id')->join('work_centers as w', 'w.id', '=', 'g.work_center_id')->join('shifts as s', 's.id', '=', 'g.shift_id')->leftJoin('production_campaigns as c', 'c.id', '=', 'g.campaign_id')->where('g.planning_run_id', $currentRunId)->orderBy('g.planned_start')->get(['g.id', 'p.number as order_number', 'p.priority', 'o.code as operation', 'o.name as operation_name', 'w.code as work_center', 's.code as shift', 'c.code as campaign_code', 'c.family as campaign_family', 'g.segment_sequence', 'g.segment_type', 'g.planned_start', 'g.planned_end', 'g.planned_minutes', 'g.notes']),
+            'planningOccupancies' => $currentRunId === null ? collect() : DB::table('biological_schedule_occupancies as b')->join('production_order_operations as po', 'po.id', '=', 'b.production_order_operation_id')->join('production_orders as p', 'p.id', '=', 'po.production_order_id')->join('operations as o', 'o.id', '=', 'po.operation_id')->join('work_centers as w', 'w.id', '=', 'b.work_center_id')->leftJoin('production_campaigns as c', 'c.id', '=', 'b.campaign_id')->where('b.planning_run_id', $currentRunId)->orderBy('b.planned_start')->get(['b.id', 'p.number as order_number', 'o.code as operation', 'o.name as operation_name', 'w.code as work_center', 'w.parallel_capacity', 'c.code as campaign_code', 'b.planned_start', 'b.planned_end', 'b.capacity_units']),
+            'planningCampaigns' => DB::table('production_campaigns as c')->leftJoin('parts as p', 'p.id', '=', 'c.part_id')->leftJoin('users as u', 'u.id', '=', 'c.created_by')->orderBy('c.priority')->orderBy('c.code')->get(['c.id', 'c.code', 'c.name', 'c.family', 'c.part_id', 'c.priority', 'c.planned_start', 'c.planned_end', 'c.status', 'c.active', 'c.notes', 'p.code as part_code', 'p.description as part_name', 'u.name as created_by_name']),
+            'changeoverRules' => DB::table('work_center_changeover_rules as r')->join('work_centers as w', 'w.id', '=', 'r.work_center_id')->orderBy('w.code')->orderBy('r.from_family')->get(['r.id', 'r.work_center_id', 'r.from_family', 'r.to_family', 'r.setup_minutes', 'r.cleaning_required', 'r.active', 'r.notes', 'w.code as work_center', 'w.description as work_center_name']),
+            'workCenterOptions' => DB::table('operation_work_center_options as option')->join('operations as operation', 'operation.id', '=', 'option.operation_id')->join('work_centers as primary_center', 'primary_center.id', '=', 'operation.work_center_id')->join('work_centers as alternate_center', 'alternate_center.id', '=', 'option.work_center_id')->leftJoin('users as approver', 'approver.id', '=', 'option.approved_by')->orderBy('operation.code')->orderBy('option.priority')->get(['option.id', 'option.operation_id', 'option.work_center_id', 'option.priority', 'option.efficiency_factor', 'option.qualification_status', 'option.valid_from', 'option.valid_to', 'option.active', 'option.notes', 'option.approved_at', 'operation.code as operation_code', 'operation.name as operation_name', 'primary_center.code as primary_center', 'alternate_center.code as alternate_center', 'alternate_center.description as alternate_center_name', 'approver.name as approved_by_name']),
+            'biologicalRules' => DB::table('biological_planning_rules as b')->join('parts as p', 'p.id', '=', 'b.part_id')->join('operations as o', 'o.id', '=', 'b.operation_id')->leftJoin('users as u', 'u.id', '=', 'b.approved_by')->orderBy('p.code')->orderBy('b.minimum_age_hours')->get(['b.id', 'b.part_id', 'b.operation_id', 'b.minimum_age_hours', 'b.target_age_hours', 'b.maximum_age_hours', 'b.active', 'b.rationale', 'b.approved_at', 'p.code as part_code', 'p.description as part_name', 'o.code as operation_code', 'o.name as operation_name', 'o.scheduling_mode', 'u.name as approved_by_name']),
+            'materialSupplyEvents' => DB::table('material_supply_events as m')->join('parts as p', 'p.id', '=', 'm.part_id')->leftJoin('users as u', 'u.id', '=', 'm.created_by')->orderBy('m.available_at')->get(['m.id', 'm.part_id', 'm.quantity', 'm.unit', 'm.available_at', 'm.status', 'm.source', 'm.reference', 'm.notes', 'p.code as part_code', 'p.description as part_name', 'u.name as created_by_name']),
+            'planningMaterialAllocations' => $currentRunId === null ? collect() : DB::table('planning_material_allocations as a')->join('production_orders as o', 'o.id', '=', 'a.production_order_id')->join('parts as p', 'p.id', '=', 'a.part_id')->leftJoin('material_supply_events as m', 'm.id', '=', 'a.material_supply_event_id')->where('a.planning_run_id', $currentRunId)->orderBy('a.available_at')->get(['a.id', 'o.number as order_number', 'p.code as part_code', 'p.description as part_name', 'a.source', 'a.quantity', 'a.available_at', 'm.reference']),
+            'planningOperations' => DB::table('process_routes as r')->join('parts as p', 'p.id', '=', 'r.part_id')->join('operations as o', 'o.id', '=', 'r.operation_id')->join('work_centers as w', 'w.id', '=', 'o.work_center_id')->orderBy('p.code')->orderBy('r.sequence')->get(['p.id as part_id', 'p.code as part_code', 'p.description as part_name', 'o.id as operation_id', 'o.code as operation_code', 'o.name as operation_name', 'o.scheduling_mode', 'o.work_center_id as primary_work_center_id', 'w.code as primary_work_center']),
+            'planningParts' => Part::where('active', true)->orderBy('code')->get(['id', 'code', 'description', 'unit', 'type']),
+            'workCenters' => DB::table('work_centers')->where('active', true)->orderBy('code')->get(['id', 'code', 'description', 'parallel_capacity']),
+            'shifts' => DB::table('shifts')->where('active', true)->orderBy('starts_at')->get(['id', 'code', 'name', 'starts_at', 'ends_at']),
         ];
     }
 
@@ -135,7 +204,7 @@ class MesDataService
                 ->join('production_orders as p', 'p.id', '=', 'po.production_order_id')
                 ->join('parts as part', 'part.id', '=', 'p.part_id')
                 ->join('operations as o', 'o.id', '=', 'po.operation_id')
-                ->join('work_centers as w', 'w.id', '=', 'o.work_center_id')
+                ->join('work_centers as w', 'w.id', '=', DB::raw('COALESCE(po.planned_work_center_id, o.work_center_id)'))
                 ->leftJoin('work_instructions as wi', 'wi.id', '=', 'po.work_instruction_id')
                 ->whereIn('p.status', ['RELEASED', 'IN_PROGRESS'])
                 ->whereIn('po.status', ['PENDING', 'READY', 'IN_PROGRESS'])
@@ -306,6 +375,82 @@ class MesDataService
     }
 
     /** @return array<string, mixed> */
+    private function validation(): array
+    {
+        return [
+            'validationProtocols' => DB::table('validation_protocols as p')
+                ->leftJoin('users as c', 'c.id', '=', 'p.created_by')
+                ->leftJoin('users as a', 'a.id', '=', 'p.approved_by')
+                ->select(['p.id', 'p.code', 'p.title', 'p.version', 'p.scope', 'p.objective', 'p.acceptance_criteria', 'p.status', 'p.approved_at', 'c.name as created_by_name', 'a.name as approved_by_name'])
+                ->selectSub(fn ($query) => $query->from('validation_protocol_steps as s')->whereColumn('s.validation_protocol_id', 'p.id')->selectRaw('count(*)'), 'step_count')
+                ->orderByDesc('p.created_at')->get(),
+            'validationRuns' => DB::table('validation_runs as r')
+                ->join('validation_protocols as p', 'p.id', '=', 'r.validation_protocol_id')
+                ->leftJoin('production_orders as o', 'o.id', '=', 'r.production_order_id')
+                ->leftJoin('users as e', 'e.id', '=', 'r.executed_by')
+                ->leftJoin('users as a', 'a.id', '=', 'r.approved_by')
+                ->select(['r.id', 'r.number', 'r.status', 'r.started_at', 'r.completed_at', 'r.approved_at', 'r.result_summary', 'r.evidence_reference', 'p.code as protocol_code', 'p.version as protocol_version', 'p.title as protocol_title', 'o.number as production_order', 'e.name as executed_by_name', 'a.name as approved_by_name'])
+                ->selectSub(fn ($query) => $query->from('validation_run_steps as s')->whereColumn('s.validation_run_id', 'r.id')->selectRaw('count(*)'), 'step_count')
+                ->selectSub(fn ($query) => $query->from('validation_run_steps as s')->whereColumn('s.validation_run_id', 'r.id')->where('s.status', 'PASS')->selectRaw('count(*)'), 'passed_steps')
+                ->selectSub(fn ($query) => $query->from('validation_run_steps as s')->whereColumn('s.validation_run_id', 'r.id')->where('s.status', 'FAIL')->selectRaw('count(*)'), 'failed_steps')
+                ->selectSub(fn ($query) => $query->from('validation_run_steps as s')->whereColumn('s.validation_run_id', 'r.id')->where('s.status', 'PENDING')->selectRaw('count(*)'), 'pending_steps')
+                ->orderByDesc('r.started_at')->limit(100)->get(),
+            'validationSteps' => DB::table('validation_run_steps as s')
+                ->join('validation_runs as r', 'r.id', '=', 's.validation_run_id')
+                ->leftJoin('users as u', 'u.id', '=', 's.executed_by')
+                ->orderByDesc('r.started_at')->orderBy('s.sequence')
+                ->limit(500)->get(['s.id', 's.validation_run_id', 'r.number as run_number', 'r.status as run_status', 's.sequence', 's.requirement', 's.expected_result', 's.actual_result', 's.status', 's.critical', 's.evidence_reference', 's.executed_at', 'u.name as executed_by_name']),
+            'electronicSignatures' => DB::table('electronic_signatures as s')
+                ->orderByDesc('s.signed_at')->limit(200)
+                ->get(['s.id', 's.signable_type', 's.signable_id', 's.meaning', 's.signer_name', 's.role_at_signing', 's.reason', 's.signed_at', 's.digest_sha256']),
+            'approvedValidationProtocols' => DB::table('validation_protocols')->where('status', 'APPROVED')->orderBy('code')->get(['id', 'code', 'title', 'version']),
+            'validationOrders' => ProductionOrder::query()->whereNotIn('status', ['CANCELLED'])->orderByDesc('created_at')->get(['id', 'number', 'status']),
+            'validationSummary' => [
+                'approvedProtocols' => DB::table('validation_protocols')->where('status', 'APPROVED')->count(),
+                'activeRuns' => DB::table('validation_runs')->where('status', 'IN_PROGRESS')->count(),
+                'pendingApproval' => DB::table('validation_runs')->where('status', 'AWAITING_APPROVAL')->count(),
+                'passedRuns' => DB::table('validation_runs')->where('status', 'PASSED')->count(),
+            ],
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function integrations(): array
+    {
+        $resolved = DB::table('integration_messages')->whereIn('status', ['ACKNOWLEDGED', 'FAILED', 'QUARANTINED'])->count();
+        $acknowledged = DB::table('integration_messages')->where('status', 'ACKNOWLEDGED')->count();
+
+        return [
+            'integrationEndpoints' => DB::table('integration_endpoints as e')
+                ->leftJoin('users as u', 'u.id', '=', 'e.created_by')
+                ->orderByDesc('e.active')->orderBy('e.code')
+                ->get(['e.id', 'e.code', 'e.name', 'e.system', 'e.direction', 'e.transport', 'e.base_url', 'e.secret_env_key', 'e.timeout_seconds', 'e.max_attempts', 'e.retry_backoff_seconds', 'e.active', 'e.health_status', 'e.last_health_at', 'e.last_health_message', 'u.name as created_by_name']),
+            'integrationMessages' => DB::table('integration_messages as m')
+                ->join('integration_endpoints as e', 'e.id', '=', 'm.integration_endpoint_id')
+                ->leftJoin('users as u', 'u.id', '=', 'm.created_by')
+                ->orderByDesc('m.created_at')->limit(300)
+                ->get(['m.id', 'm.uuid', 'm.direction', 'm.message_type', 'm.idempotency_key', 'm.correlation_id', 'm.entity_type', 'm.entity_id', 'm.payload_sha256', 'm.status', 'm.attempt_count', 'm.next_attempt_at', 'm.last_error', 'm.response_code', 'm.response_excerpt', 'm.dispatched_at', 'm.acknowledged_at', 'm.created_at', 'e.code as endpoint_code', 'e.name as endpoint_name', 'e.transport', 'u.name as created_by_name']),
+            'integrationAttempts' => DB::table('integration_attempts as a')
+                ->join('integration_messages as m', 'm.id', '=', 'a.integration_message_id')
+                ->join('integration_endpoints as e', 'e.id', '=', 'm.integration_endpoint_id')
+                ->orderByDesc('a.started_at')->limit(300)
+                ->get(['a.id', 'm.uuid as message_uuid', 'e.code as endpoint_code', 'a.attempt_number', 'a.status', 'a.started_at', 'a.finished_at', 'a.duration_ms', 'a.response_code', 'a.response_excerpt', 'a.error']),
+            'integrationReconciliations' => DB::table('integration_reconciliations as r')
+                ->join('integration_endpoints as e', 'e.id', '=', 'r.integration_endpoint_id')
+                ->leftJoin('users as u', 'u.id', '=', 'r.generated_by')
+                ->orderByDesc('r.generated_at')->limit(100)
+                ->get(['r.id', 'e.code as endpoint_code', 'r.period_from', 'r.period_to', 'r.expected_count', 'r.observed_count', 'r.acknowledged_count', 'r.failed_count', 'r.difference', 'r.status', 'r.notes', 'r.generated_at', 'u.name as generated_by_name']),
+            'activeIntegrationEndpoints' => DB::table('integration_endpoints')->where('active', true)->orderBy('code')->get(['id', 'code', 'name', 'direction', 'transport']),
+            'integrationSummary' => [
+                'activeEndpoints' => DB::table('integration_endpoints')->where('active', true)->count(),
+                'pendingMessages' => DB::table('integration_messages')->whereIn('status', ['PENDING', 'PROCESSING', 'FAILED'])->count(),
+                'quarantinedMessages' => DB::table('integration_messages')->where('status', 'QUARANTINED')->count(),
+                'successRate' => $resolved > 0 ? round(($acknowledged / $resolved) * 100, 1) : 0,
+            ],
+        ];
+    }
+
+    /** @return array<string, mixed> */
     private function costs(): array
     {
         $p = Parameter::where('scope', 'COST')->pluck('value', 'code');
@@ -325,6 +470,30 @@ class MesDataService
             $row['accumulated'] = $accumulated += $row['total'];
         }
 
-        return ['costs' => $rows, 'summary' => ['material' => array_sum(array_column($rows, 'material')), 'labor' => array_sum(array_column($rows, 'labor')), 'overhead' => array_sum(array_column($rows, 'overhead')), 'total' => $accumulated]];
+        return [
+            'costs' => $rows,
+            'summary' => ['material' => array_sum(array_column($rows, 'material')), 'labor' => array_sum(array_column($rows, 'labor')), 'overhead' => array_sum(array_column($rows, 'overhead')), 'total' => $accumulated],
+            'costOrders' => DB::table('production_orders as o')
+                ->join('parts as p', 'p.id', '=', 'o.part_id')
+                ->leftJoin('production_lot_costs as c', 'c.production_order_id', '=', 'o.id')
+                ->whereNotIn('o.status', ['PLANNED', 'CANCELLED'])
+                ->orderByRaw("CASE WHEN c.status = 'DRAFT' THEN 1 WHEN c.status IS NULL THEN 2 ELSE 3 END")
+                ->orderByDesc('o.created_at')
+                ->get(['o.id', 'o.number', 'o.status as order_status', 'o.planned_quantity', 'o.completed_quantity', 'o.unit', 'o.started_at', 'o.completed_at', 'p.code as part_code', 'p.description as part_name', 'c.material_cost', 'c.labor_cost', 'c.energy_cost', 'c.overhead_cost', 'c.coproduct_credit', 'c.net_cost', 'c.output_quantity', 'c.unit_cost', 'c.status as cost_status', 'c.calculated_at', 'c.closed_at']),
+            'costEntries' => DB::table('production_cost_entries as e')
+                ->join('production_orders as o', 'o.id', '=', 'e.production_order_id')
+                ->leftJoin('users as u', 'u.id', '=', 'e.recorded_by')
+                ->orderByDesc('e.occurred_at')->limit(300)
+                ->get(['e.id', 'e.production_order_id', 'o.number as order_number', 'e.category', 'e.source_type', 'e.quantity', 'e.unit', 'e.unit_cost', 'e.amount', 'e.description', 'e.occurred_at', 'u.name as recorded_by']),
+            'costRates' => DB::table('cost_rates as r')->leftJoin('parts as p', 'p.id', '=', 'r.part_id')->leftJoin('work_centers as w', 'w.id', '=', 'r.work_center_id')->where('r.active', true)->orderBy('r.category')->orderBy('r.code')->get(['r.id', 'r.code', 'r.name', 'r.category', 'r.unit_cost', 'r.unit', 'r.effective_from', 'r.effective_to', 'p.code as part_code', 'w.code as work_center']),
+            'costParts' => Part::query()->where('active', true)->orderBy('code')->get(['id', 'code', 'description', 'unit', 'type']),
+            'costWorkCenters' => WorkCenter::query()->where('active', true)->orderBy('code')->get(['id', 'code', 'description']),
+            'actualCostSummary' => [
+                'openLots' => DB::table('production_lot_costs')->where('status', 'DRAFT')->count(),
+                'closedLots' => DB::table('production_lot_costs')->where('status', 'CLOSED')->count(),
+                'netCost' => round((float) DB::table('production_lot_costs')->sum('net_cost'), 2),
+                'averageUnitCost' => round((float) DB::table('production_lot_costs')->where('output_quantity', '>', 0)->avg('unit_cost'), 4),
+            ],
+        ];
     }
 }

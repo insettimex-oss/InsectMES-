@@ -2,15 +2,19 @@ import { FormEvent, useState } from 'react';
 import { router, useForm } from '@inertiajs/react';
 import {
     AlertTriangle,
+    CalendarClock,
     CheckCircle2,
     DatabaseBackup,
     GitMerge,
+    Gauge,
     Plus,
     Scale,
     Scissors,
     ShieldCheck,
+    TimerReset,
 } from 'lucide-react';
 import { MesRecordDialog } from '@/components/mes-record-dialog';
+import { AdvancedPlanningSection } from './advanced-planning-section';
 
 type Item = Record<string, unknown>;
 type Props = Record<string, unknown>;
@@ -103,11 +107,24 @@ function Table({
 }
 const dt = (v: unknown) =>
     v ? new Date(textValue(v)).toLocaleString('es-MX') : '—';
+const localDateTimeInput = (value: Date) => {
+    const localValue = new Date(
+        value.getTime() - value.getTimezoneOffset() * 60_000,
+    );
+
+    return localValue.toISOString().slice(0, 16);
+};
 
 export function OrdersSection({ data }: { data: Props }) {
     const [open, setOpen] = useState(false);
+    const [planningOpen, setPlanningOpen] = useState(false);
+    const [capacityOpen, setCapacityOpen] = useState(false);
+    const now = new Date();
+    const horizon = new Date(now);
+    horizon.setDate(horizon.getDate() + 90);
     const form = useForm({
         part_id: '',
+        campaign_id: '',
         planned_quantity: '',
         priority: 'NORMAL',
         scheduled_start: '',
@@ -125,23 +142,99 @@ export function OrdersSection({ data }: { data: Props }) {
         });
     };
     const orders = (data.orders ?? []) as Item[];
+    const planningRun = (data.planningRun ?? {}) as Item;
+    const capacities = (data.planningCapacities ?? []) as Item[];
+    const segments = (data.planningSegments ?? []) as Item[];
+    const campaigns = (data.planningCampaigns ?? []) as Item[];
+    const planningForm = useForm({
+        horizon_start: localDateTimeInput(now),
+        horizon_end: localDateTimeInput(horizon),
+        notes: 'Replaneación finita por prioridad, precedencia, centro y turno.',
+    });
+    const capacityForm = useForm({
+        work_center_id: '',
+        shift_id: '',
+        available_minutes: '480',
+        active: true,
+    });
+    const runPlanning = (e: FormEvent) => {
+        e.preventDefault();
+        planningForm.post('/mes/planning/run', {
+            preserveScroll: true,
+            onSuccess: () => setPlanningOpen(false),
+        });
+    };
+    const saveCapacity = (e: FormEvent) => {
+        e.preventDefault();
+        capacityForm.put('/mes/planning/capacity', {
+            preserveScroll: true,
+            onSuccess: () => setCapacityOpen(false),
+        });
+    };
     return (
         <div className="stack-lg">
+            <div className="readiness-grid">
+                <article>
+                    <CalendarClock />
+                    <span>Último plan</span>
+                    <strong>
+                        {planningRun.id
+                            ? `#${textValue(planningRun.id)}`
+                            : 'Sin ejecutar'}
+                    </strong>
+                </article>
+                <article>
+                    <Gauge />
+                    <span>Operaciones programadas</span>
+                    <strong>
+                        {textValue(planningRun.operations_scheduled, '0')}
+                    </strong>
+                </article>
+                <article>
+                    <AlertTriangle />
+                    <span>Órdenes tardías</span>
+                    <strong>{textValue(planningRun.late_orders, '0')}</strong>
+                </article>
+                <article>
+                    <TimerReset />
+                    <span>No programadas</span>
+                    <strong>
+                        {textValue(planningRun.unscheduled_operations, '0')}
+                    </strong>
+                </article>
+            </div>
             <Card
                 title="Plan de producción"
                 action={
-                    <button
-                        className="primary-button"
-                        onClick={() => setOpen(true)}
-                    >
-                        <Plus /> Nueva orden
-                    </button>
+                    <div className="inline-actions">
+                        <button
+                            className="secondary-button"
+                            onClick={() => setCapacityOpen(true)}
+                        >
+                            <Gauge /> Capacidad
+                        </button>
+                        <button
+                            className="secondary-button"
+                            onClick={() => setPlanningOpen(true)}
+                        >
+                            <CalendarClock /> Planificar
+                        </button>
+                        <button
+                            className="primary-button"
+                            onClick={() => setOpen(true)}
+                        >
+                            <Plus /> Nueva orden
+                        </button>
+                    </div>
                 }
             >
                 <div className="order-grid">
                     {orders.map((o) => {
                         const part = o.part as Item;
                         const operations = (o.operations ?? []) as Item[];
+                        const campaign = campaigns.find(
+                            (row) => String(row.id) === String(o.campaign_id),
+                        );
                         const next =
                             o.status === 'PLANNED'
                                 ? 'RELEASED'
@@ -162,6 +255,11 @@ export function OrdersSection({ data }: { data: Props }) {
                                         {String(o.planned_quantity)}{' '}
                                         {String(o.unit)}
                                     </p>
+                                    <small>
+                                        {campaign
+                                            ? `Campaña ${textValue(campaign.code)} · ${textValue(campaign.family)}`
+                                            : 'Sin campaña asignada'}
+                                    </small>
                                 </div>
                                 <Status value={o.status} />
                                 <div className="order-progress">
@@ -209,6 +307,66 @@ export function OrdersSection({ data }: { data: Props }) {
                     })}
                 </div>
             </Card>
+            <Card title="Secuencia finita vigente">
+                <Table
+                    headers={[
+                        'Inicio',
+                        'Fin',
+                        'Orden',
+                        'Operación',
+                        'Centro / turno',
+                        'Minutos',
+                    ]}
+                    rows={segments.map((segment) => [
+                        dt(segment.planned_start),
+                        dt(segment.planned_end),
+                        textValue(segment.order_number),
+                        `${textValue(segment.segment_type)} · ${textValue(segment.operation)} · ${textValue(segment.operation_name)}`,
+                        `${textValue(segment.work_center)} · ${textValue(segment.shift)}`,
+                        textValue(segment.planned_minutes),
+                    ])}
+                />
+            </Card>
+            <Card title="Capacidad por centro y turno">
+                <Table
+                    headers={[
+                        'Centro',
+                        'Turno',
+                        'Ventana',
+                        'Minutos disponibles',
+                        'Estado',
+                        'Acción',
+                    ]}
+                    rows={capacities.map((capacity) => [
+                        `${textValue(capacity.work_center)} · ${textValue(capacity.work_center_name)}`,
+                        `${textValue(capacity.shift)} · ${textValue(capacity.shift_name)}`,
+                        `${textValue(capacity.starts_at)}–${textValue(capacity.ends_at)}`,
+                        textValue(capacity.available_minutes),
+                        capacity.active ? 'Activa' : 'Inactiva',
+                        <button
+                            className="small-button"
+                            onClick={() => {
+                                capacityForm.setData({
+                                    work_center_id: textValue(
+                                        capacity.work_center_id,
+                                        '',
+                                    ),
+                                    shift_id: textValue(capacity.shift_id, ''),
+                                    available_minutes: textValue(
+                                        capacity.available_minutes,
+                                        '480',
+                                    ),
+                                    active: Boolean(capacity.active),
+                                });
+                                setCapacityOpen(true);
+                            }}
+                        >
+                            Editar
+                        </button>,
+                    ])}
+                />
+            </Card>
+            <AdvancedPlanningSection data={data} />
             <MesRecordDialog
                 open={open}
                 onOpenChange={setOpen}
@@ -236,6 +394,33 @@ export function OrdersSection({ data }: { data: Props }) {
                                         {String(p.description)}
                                     </option>
                                 ))}
+                            </select>
+                        </label>
+                        <label>
+                            Campaña productiva
+                            <select
+                                value={form.data.campaign_id}
+                                onChange={(e) =>
+                                    form.setData('campaign_id', e.target.value)
+                                }
+                            >
+                                <option value="">Sin campaña</option>
+                                {campaigns
+                                    .filter(
+                                        (campaign) =>
+                                            !campaign.part_id ||
+                                            textValue(campaign.part_id, '') ===
+                                                form.data.part_id,
+                                    )
+                                    .map((campaign) => (
+                                        <option
+                                            key={String(campaign.id)}
+                                            value={String(campaign.id)}
+                                        >
+                                            {textValue(campaign.code)} ·{' '}
+                                            {textValue(campaign.family)}
+                                        </option>
+                                    ))}
                             </select>
                         </label>
                         <label>
@@ -316,6 +501,176 @@ export function OrdersSection({ data }: { data: Props }) {
                             disabled={form.processing}
                         >
                             Crear orden y ruta
+                        </button>
+                    </div>
+                </form>
+            </MesRecordDialog>
+            <MesRecordDialog
+                open={planningOpen}
+                onOpenChange={setPlanningOpen}
+                title="Ejecutar planeación finita"
+                description="Recalcula operaciones no iniciadas por prioridad, precedencia, centro de trabajo, turno y minutos disponibles. El resultado anterior conserva su evidencia y queda superado."
+            >
+                <form className="mes-form" onSubmit={runPlanning}>
+                    <Grid>
+                        <label>
+                            Inicio del horizonte
+                            <input
+                                required
+                                type="datetime-local"
+                                value={planningForm.data.horizon_start}
+                                onChange={(e) =>
+                                    planningForm.setData(
+                                        'horizon_start',
+                                        e.target.value,
+                                    )
+                                }
+                            />
+                        </label>
+                        <label>
+                            Fin del horizonte
+                            <input
+                                required
+                                type="datetime-local"
+                                value={planningForm.data.horizon_end}
+                                onChange={(e) =>
+                                    planningForm.setData(
+                                        'horizon_end',
+                                        e.target.value,
+                                    )
+                                }
+                            />
+                        </label>
+                        <label>
+                            Motivo de la corrida
+                            <input
+                                required
+                                value={planningForm.data.notes}
+                                onChange={(e) =>
+                                    planningForm.setData(
+                                        'notes',
+                                        e.target.value,
+                                    )
+                                }
+                            />
+                        </label>
+                    </Grid>
+                    {Object.keys(planningForm.errors).length > 0 && (
+                        <p className="form-error">
+                            {Object.values(planningForm.errors).join(' ')}
+                        </p>
+                    )}
+                    <div className="form-actions">
+                        <button
+                            className="primary-button"
+                            disabled={planningForm.processing}
+                        >
+                            <CalendarClock /> Calcular plan
+                        </button>
+                    </div>
+                </form>
+            </MesRecordDialog>
+            <MesRecordDialog
+                open={capacityOpen}
+                onOpenChange={setCapacityOpen}
+                title="Capacidad de centro y turno"
+                description="Define minutos realmente utilizables. Cero minutos o un turno inactivo excluyen esa ventana del siguiente cálculo."
+            >
+                <form className="mes-form" onSubmit={saveCapacity}>
+                    <Grid>
+                        <label>
+                            Centro de trabajo
+                            <select
+                                required
+                                value={capacityForm.data.work_center_id}
+                                onChange={(e) =>
+                                    capacityForm.setData(
+                                        'work_center_id',
+                                        e.target.value,
+                                    )
+                                }
+                            >
+                                <option value="">Seleccionar</option>
+                                {((data.workCenters ?? []) as Item[]).map(
+                                    (center) => (
+                                        <option
+                                            key={String(center.id)}
+                                            value={String(center.id)}
+                                        >
+                                            {textValue(center.code)} ·{' '}
+                                            {textValue(center.description)}
+                                        </option>
+                                    ),
+                                )}
+                            </select>
+                        </label>
+                        <label>
+                            Turno
+                            <select
+                                required
+                                value={capacityForm.data.shift_id}
+                                onChange={(e) =>
+                                    capacityForm.setData(
+                                        'shift_id',
+                                        e.target.value,
+                                    )
+                                }
+                            >
+                                <option value="">Seleccionar</option>
+                                {((data.shifts ?? []) as Item[]).map(
+                                    (shift) => (
+                                        <option
+                                            key={String(shift.id)}
+                                            value={String(shift.id)}
+                                        >
+                                            {textValue(shift.code)} ·{' '}
+                                            {textValue(shift.name)}
+                                        </option>
+                                    ),
+                                )}
+                            </select>
+                        </label>
+                        <label>
+                            Minutos disponibles
+                            <input
+                                required
+                                type="number"
+                                min="0"
+                                max="1440"
+                                value={capacityForm.data.available_minutes}
+                                onChange={(e) =>
+                                    capacityForm.setData(
+                                        'available_minutes',
+                                        e.target.value,
+                                    )
+                                }
+                            />
+                        </label>
+                        <label className="check-label">
+                            <input
+                                type="checkbox"
+                                checked={capacityForm.data.active}
+                                onChange={(e) =>
+                                    capacityForm.setData(
+                                        'active',
+                                        e.target.checked,
+                                    )
+                                }
+                            />
+                            Turno disponible para planeación
+                        </label>
+                    </Grid>
+                    {Object.keys(capacityForm.errors).length > 0 && (
+                        <p className="form-error">
+                            {Object.values(capacityForm.errors).join(' ')}
+                        </p>
+                    )}
+                    <div className="form-actions">
+                        <button
+                            className="primary-button"
+                            disabled={capacityForm.processing}
+                        >
+                            Guardar capacidad
                         </button>
                     </div>
                 </form>
@@ -1219,7 +1574,7 @@ export function ContinuitySection({ data }: { data: Props }) {
                 </article>
             </div>
             <Card
-                title="Respaldo y verificación"
+                title="Respaldo e integridad"
                 action={
                     <button
                         className="primary-button"
@@ -1242,7 +1597,8 @@ export function ContinuitySection({ data }: { data: Props }) {
                         'Archivo',
                         'Tamaño',
                         'Checksum',
-                        'Restaurable',
+                        'Integridad',
+                        'Restauración',
                     ]}
                     rows={((data.backupRuns ?? []) as Item[]).map((x) => [
                         dt(x.started_at),
@@ -1252,14 +1608,54 @@ export function ContinuitySection({ data }: { data: Props }) {
                             ? `${(Number(x.size_bytes) / 1024).toFixed(1)} KB`
                             : '—',
                         textValue(x.checksum).slice(0, 12),
-                        x.restore_verified ? 'Sí' : 'No',
+                        x.integrity_verified ? 'Verificada' : 'Pendiente',
+                        x.restore_verified ? 'Probada' : 'Pendiente',
+                    ])}
+                />
+            </Card>
+            <Card
+                title="Simulacros de restauración"
+                action={
+                    <button
+                        className="secondary-button"
+                        onClick={() =>
+                            router.post(
+                                '/mes/continuity/restore-drill',
+                                { rto_target_seconds: 300 },
+                                { preserveScroll: true },
+                            )
+                        }
+                    >
+                        <ShieldCheck /> Probar restauración
+                    </button>
+                }
+            >
+                <Table
+                    headers={[
+                        'Inicio',
+                        'Estado',
+                        'Respaldo',
+                        'Duración / RTO',
+                        'Checksum',
+                        'Integridad',
+                        'Responsable',
+                    ]}
+                    rows={((data.restoreDrills ?? []) as Item[]).map((x) => [
+                        dt(x.started_at),
+                        <Status value={x.status} />,
+                        textValue(x.backup_path).split(/[\\/]/).pop() ?? '—',
+                        `${textValue(x.duration_seconds)} s / ${textValue(x.rto_target_seconds)} s`,
+                        x.checksum_verified ? 'Verificado' : 'Pendiente',
+                        x.integrity_verified ? 'Verificada' : 'Pendiente',
+                        textValue(x.performed_by_name),
                     ])}
                 />
             </Card>
             <p className="info-callout">
-                <AlertTriangle /> SQLite cuenta con respaldo consistente local.
-                Alta disponibilidad, copia fuera del equipo y simulacro formal
-                siguen siendo tareas de infraestructura.
+                <AlertTriangle /> SQLite permite comprobar respaldo y
+                restauración aislada en este equipo. PostgreSQL, copia externa,
+                monitoreo y alta disponibilidad siguen requiriendo
+                infraestructura productiva.
             </p>
         </div>
     );

@@ -1,8 +1,10 @@
 import { Link, usePage } from '@inertiajs/react';
 import {
     Boxes,
+    BadgeCheck,
     BookOpenCheck,
     CalendarClock,
+    Cable,
     ChartNoAxesCombined,
     ClipboardCheck,
     ClipboardList,
@@ -20,6 +22,7 @@ import {
     ShieldAlert,
     Sprout,
     Thermometer,
+    Truck,
     Users,
     Utensils,
     Wrench,
@@ -137,6 +140,12 @@ const groups: Array<{ label: string; items: AccessNavItem[] }> = [
                 icon: ClipboardList,
                 permission: 'traceability.read',
             },
+            {
+                title: 'Logística y embarques',
+                href: '/mes/logistics',
+                icon: Truck,
+                permission: 'logistics.read',
+            },
         ],
     },
     {
@@ -188,6 +197,18 @@ const groups: Array<{ label: string; items: AccessNavItem[] }> = [
                 href: '/mes/governance',
                 icon: BookOpenCheck,
                 permission: 'governance.read',
+            },
+            {
+                title: 'Validación y firmas',
+                href: '/mes/validation',
+                icon: BadgeCheck,
+                permission: 'validation.read',
+            },
+            {
+                title: 'Integraciones',
+                href: '/mes/integrations',
+                icon: Cable,
+                permission: 'integrations.read',
             },
             {
                 title: 'Auditoría',
