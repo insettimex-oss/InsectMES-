@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'alegra' => [
+        'email' => env('ALEGRA_API_EMAIL'),
+        'token' => env('ALEGRA_API_TOKEN'),
+    ],
+
 ];

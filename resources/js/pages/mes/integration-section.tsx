@@ -4,12 +4,14 @@ import {
     Activity,
     Cable,
     CircleCheck,
+    Landmark,
     ListRestart,
     MessageSquareMore,
     Plus,
     RefreshCw,
     Send,
     ShieldAlert,
+    Power,
 } from 'lucide-react';
 import { MesRecordDialog } from '@/components/mes-record-dialog';
 
@@ -34,6 +36,9 @@ const statusLabel = (input: unknown) =>
         UNCHECKED: 'SIN VERIFICAR',
         HEALTHY: 'SALUDABLE',
         DEGRADED: 'DEGRADADO',
+        PENDING_CONFIGURATION: 'POR CONFIGURAR',
+        INACTIVE: 'INACTIVO',
+        ACTIVE: 'ACTIVO',
         PENDING: 'PENDIENTE',
         PROCESSING: 'PROCESANDO',
         ACKNOWLEDGED: 'RECONOCIDO',
@@ -164,8 +169,12 @@ export function IntegrationSection({
         system: 'ERP',
         direction: 'BIDIRECTIONAL',
         transport: 'LOCAL',
+        connector_driver: 'GENERIC',
         base_url: '',
+        auth_scheme: 'NONE',
+        username_env_key: '',
         secret_env_key: '',
+        active: true,
         timeout_seconds: '10',
         max_attempts: '5',
         retry_backoff_seconds: '60',
@@ -231,6 +240,19 @@ export function IntegrationSection({
                         HTTP solo se considera conectado cuando exista una URL,
                         una credencial por variable de entorno y evidencia de
                         reconocimientos reales.
+                    </p>
+                </div>
+            </div>
+
+            <div className="info-callout">
+                <Landmark />
+                <div>
+                    <b>Alegra listo para configuración segura</b>
+                    <p>
+                        Hay contratos controlados para crear contactos y
+                        facturas. Los endpoints permanecen inactivos hasta que
+                        TI cargue correo y token en el servidor, valide el mapeo
+                        contable y los active explícitamente.
                     </p>
                 </div>
             </div>
@@ -323,10 +345,12 @@ export function IntegrationSection({
                     headers={[
                         'Código',
                         'Sistema',
+                        'Conector',
                         'Dirección',
                         'Transporte',
                         'Destino / secreto',
                         'Salud',
+                        'Disponibilidad',
                     ]}
                     rows={endpoints.map((endpoint) => [
                         <div>
@@ -334,6 +358,10 @@ export function IntegrationSection({
                             <small>{value(endpoint.name)}</small>
                         </div>,
                         value(endpoint.system),
+                        <div>
+                            <b>{value(endpoint.connector_driver, 'GENERIC')}</b>
+                            <small>{value(endpoint.auth_scheme, 'NONE')}</small>
+                        </div>,
                         <Status>{endpoint.direction}</Status>,
                         value(endpoint.transport),
                         <div>
@@ -347,6 +375,33 @@ export function IntegrationSection({
                         <div>
                             <Status>{endpoint.health_status}</Status>
                             <small>{date(endpoint.last_health_at)}</small>
+                        </div>,
+                        <div>
+                            <Status>
+                                {endpoint.active ? 'ACTIVE' : 'INACTIVE'}
+                            </Status>
+                            <small>{value(endpoint.readiness_message)}</small>
+                            {canAdmin && (
+                                <button
+                                    className="table-action"
+                                    disabled={
+                                        !endpoint.active &&
+                                        endpoint.runtime_ready !== true
+                                    }
+                                    onClick={() =>
+                                        router.patch(
+                                            `/mes/integrations/endpoints/${value(endpoint.id)}/status`,
+                                            { active: !endpoint.active },
+                                            { preserveScroll: true },
+                                        )
+                                    }
+                                    title={value(endpoint.readiness_message)}
+                                    type="button"
+                                >
+                                    <Power />
+                                    {endpoint.active ? 'Desactivar' : 'Activar'}
+                                </button>
+                            )}
                         </div>,
                     ])}
                 />
@@ -530,6 +585,54 @@ export function IntegrationSection({
                             />
                         </label>
                         <label>
+                            Conector
+                            <select
+                                value={endpointForm.data.connector_driver}
+                                onChange={(event) => {
+                                    const driver = event.target.value;
+                                    endpointForm.setData((current) => ({
+                                        ...current,
+                                        connector_driver: driver,
+                                        system:
+                                            driver === 'ALEGRA'
+                                                ? 'Alegra'
+                                                : current.system,
+                                        direction:
+                                            driver === 'ALEGRA'
+                                                ? 'OUTBOUND'
+                                                : current.direction,
+                                        transport:
+                                            driver === 'ALEGRA'
+                                                ? 'HTTP'
+                                                : current.transport,
+                                        base_url:
+                                            driver === 'ALEGRA'
+                                                ? 'https://api.alegra.com/api/v1/contacts'
+                                                : current.base_url,
+                                        auth_scheme:
+                                            driver === 'ALEGRA'
+                                                ? 'BASIC_ENV'
+                                                : 'NONE',
+                                        username_env_key:
+                                            driver === 'ALEGRA'
+                                                ? 'ALEGRA_API_EMAIL'
+                                                : '',
+                                        secret_env_key:
+                                            driver === 'ALEGRA'
+                                                ? 'ALEGRA_API_TOKEN'
+                                                : '',
+                                        active:
+                                            driver === 'ALEGRA'
+                                                ? false
+                                                : current.active,
+                                    }));
+                                }}
+                            >
+                                <option value="GENERIC">Genérico</option>
+                                <option value="ALEGRA">Alegra</option>
+                            </select>
+                        </label>
+                        <label>
                             Dirección
                             <select
                                 value={endpointForm.data.direction}
@@ -578,6 +681,37 @@ export function IntegrationSection({
                             />
                         </label>
                         <label>
+                            Autenticación
+                            <select
+                                value={endpointForm.data.auth_scheme}
+                                onChange={(event) =>
+                                    endpointForm.setData(
+                                        'auth_scheme',
+                                        event.target.value,
+                                    )
+                                }
+                            >
+                                <option value="NONE">Sin autenticación</option>
+                                <option value="BEARER">Token Bearer</option>
+                                <option value="BASIC_ENV">
+                                    Basic desde entorno
+                                </option>
+                            </select>
+                        </label>
+                        <label>
+                            Variable del usuario/correo
+                            <input
+                                value={endpointForm.data.username_env_key}
+                                onChange={(event) =>
+                                    endpointForm.setData(
+                                        'username_env_key',
+                                        event.target.value.toUpperCase(),
+                                    )
+                                }
+                                placeholder="ALEGRA_API_EMAIL"
+                            />
+                        </label>
+                        <label>
                             Variable de entorno del secreto
                             <input
                                 value={endpointForm.data.secret_env_key}
@@ -589,6 +723,23 @@ export function IntegrationSection({
                                 }
                                 placeholder="PLEX_API_TOKEN"
                             />
+                        </label>
+                        <label className="checkbox-field">
+                            <input
+                                checked={endpointForm.data.active}
+                                disabled={
+                                    endpointForm.data.connector_driver ===
+                                    'ALEGRA'
+                                }
+                                type="checkbox"
+                                onChange={(event) =>
+                                    endpointForm.setData(
+                                        'active',
+                                        event.target.checked,
+                                    )
+                                }
+                            />
+                            Activar al crear (Alegra inicia inactivo)
                         </label>
                         <label>
                             Timeout (segundos)

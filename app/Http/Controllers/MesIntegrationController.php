@@ -28,8 +28,12 @@ class MesIntegrationController extends Controller
             'system' => ['required', 'string', 'max:80'],
             'direction' => ['required', Rule::in(['INBOUND', 'OUTBOUND', 'BIDIRECTIONAL'])],
             'transport' => ['required', Rule::in(['LOCAL', 'FILE', 'HTTP'])],
+            'connector_driver' => ['nullable', Rule::in(['GENERIC', 'ALEGRA'])],
             'base_url' => ['nullable', 'url:http,https', 'max:500'],
+            'auth_scheme' => ['nullable', Rule::in(['NONE', 'BEARER', 'BASIC_ENV'])],
+            'username_env_key' => ['nullable', 'regex:/^[A-Z][A-Z0-9_]*$/', 'max:120'],
             'secret_env_key' => ['nullable', 'regex:/^[A-Z][A-Z0-9_]*$/', 'max:120'],
+            'active' => ['nullable', 'boolean'],
             'timeout_seconds' => ['required', 'integer', 'between:1,120'],
             'max_attempts' => ['required', 'integer', 'between:1,20'],
             'retry_backoff_seconds' => ['required', 'integer', 'between:5,86400'],
@@ -37,14 +41,39 @@ class MesIntegrationController extends Controller
         if ($data['transport'] === 'HTTP' && empty($data['base_url'])) {
             throw ValidationException::withMessages(['base_url' => 'El transporte HTTP requiere una URL base.']);
         }
+        $driver = (string) ($data['connector_driver'] ?? 'GENERIC');
+        $authScheme = (string) ($data['auth_scheme'] ?? (! empty($data['secret_env_key']) ? 'BEARER' : 'NONE'));
+        if ($driver === 'ALEGRA') {
+            if ($data['transport'] !== 'HTTP' || $authScheme !== 'BASIC_ENV') {
+                throw ValidationException::withMessages(['connector_driver' => 'Alegra requiere transporte HTTP y autenticación BASIC_ENV.']);
+            }
+            $probe = (object) [
+                'connector_driver' => 'ALEGRA',
+                'transport' => 'HTTP',
+                'base_url' => $data['base_url'] ?? null,
+                'auth_scheme' => 'BASIC_ENV',
+                'username_env_key' => $data['username_env_key'] ?? null,
+                'secret_env_key' => $data['secret_env_key'] ?? null,
+            ];
+            $this->hub->validateEndpointConfiguration($probe);
+            $readiness = $this->hub->endpointReadiness($probe);
+            if (($data['active'] ?? false) && ! $readiness['ready']) {
+                throw ValidationException::withMessages(['active' => $readiness['message']]);
+            }
+        } elseif ($authScheme === 'BASIC_ENV') {
+            throw ValidationException::withMessages(['auth_scheme' => 'BASIC_ENV está reservado al conector Alegra validado.']);
+        }
 
         $id = DB::table('integration_endpoints')->insertGetId([
             ...$data,
             'code' => strtoupper($data['code']),
+            'connector_driver' => $driver,
             'base_url' => $data['base_url'] ?? null,
+            'auth_scheme' => $authScheme,
+            'username_env_key' => $data['username_env_key'] ?? null,
             'secret_env_key' => $data['secret_env_key'] ?? null,
-            'active' => true,
-            'health_status' => 'UNCHECKED',
+            'active' => (bool) ($data['active'] ?? $driver !== 'ALEGRA'),
+            'health_status' => $driver === 'ALEGRA' ? 'PENDING_CONFIGURATION' : 'UNCHECKED',
             'created_by' => $request->user()->id,
             'created_at' => now(),
             'updated_at' => now(),
@@ -52,6 +81,30 @@ class MesIntegrationController extends Controller
         $this->audit->record($request, 'INTEGRATION_ENDPOINT_CREATED', 'integration_endpoints', 'Endpoint registrado sin almacenar secretos', null, Arr::except($data, ['secret_env_key']) + ['has_secret_reference' => ! empty($data['secret_env_key'])], $id);
 
         return $this->success('Endpoint creado. Las credenciales permanecen fuera de la base de datos.');
+    }
+
+    public function updateEndpointStatus(Request $request, int $endpoint): RedirectResponse
+    {
+        $data = $request->validate(['active' => ['required', 'boolean']]);
+        $before = DB::table('integration_endpoints')->where('id', $endpoint)->firstOrFail();
+        $active = (bool) $data['active'];
+        if ($active) {
+            $readiness = $this->hub->endpointReadiness($before);
+            if (! $readiness['ready']) {
+                throw ValidationException::withMessages(['active' => $readiness['message']]);
+            }
+        }
+
+        DB::table('integration_endpoints')->where('id', $endpoint)->update([
+            'active' => $active,
+            'health_status' => $active ? 'UNCHECKED' : 'INACTIVE',
+            'last_health_message' => $active ? 'Activado; pendiente de primer reconocimiento.' : 'Desactivado por TI.',
+            'updated_at' => now(),
+        ]);
+        $after = DB::table('integration_endpoints')->where('id', $endpoint)->first();
+        $this->audit->record($request, $active ? 'INTEGRATION_ENDPOINT_ACTIVATED' : 'INTEGRATION_ENDPOINT_DEACTIVATED', 'integration_endpoints', 'Cambio de estado del endpoint autorizado por TI', (array) $before, $after ? (array) $after : null, $endpoint);
+
+        return $this->success($active ? 'Endpoint activado; valide el primer reconocimiento antes de usarlo en producción.' : 'Endpoint desactivado.');
     }
 
     public function queueOutbound(Request $request): RedirectResponse

@@ -37,6 +37,10 @@ Reconstrucción del prototipo InsectMES como aplicación persistente
 - Hub de integración con endpoints gobernados, idempotencia, hash SHA-256, reintentos,
   cuarentena, bitácora de intentos y conciliación. Los transportes LOCAL y FILE son
   verificables sin terceros; HTTP queda preparado para conectores reales.
+- Conector Alegra preparado para altas de contactos y facturas de venta mediante
+  contratos validados, autenticación Basic desde el entorno y destinos HTTPS oficiales.
+  Sus dos endpoints se instalan inactivos y requieren credenciales, mapeo contable
+  aprobado y activación explícita de TI antes de generar documentos reales.
 - Usuarios y seguridad proporcionados por el starter kit oficial.
 - Sidebar integrado, responsive y colapsable con `Ctrl/Cmd + B`.
 
@@ -62,6 +66,28 @@ Usuario inicial de desarrollo:
 - Contraseña: `InsectMES2026!`
 
 La contraseña es únicamente para desarrollo local y debe cambiarse antes de publicar.
+
+### Preparar Alegra sin exponer credenciales
+
+1. Completa `ALEGRA_API_EMAIL` y `ALEGRA_API_TOKEN` en el `.env` del servidor.
+2. Ejecuta `php artisan config:clear` en desarrollo o reconstruye la caché de
+   configuración en el despliegue.
+3. En **Gobernar → Integraciones**, revisa los endpoints `ALEGRA-CONTACTS` y
+   `ALEGRA-INVOICES`, valida IDs de clientes, ítems, almacén y centro de costo con
+   Administración, y actívalos con una cuenta de TI.
+4. Realiza primero una entrega controlada y concilia el reconocimiento remoto.
+
+Contratos de salida admitidos:
+
+- `ALEGRA_CONTACT_CREATE`: requiere `name`; acepta `identification`, `address`,
+  `phone_primary`, `phone_secondary`, `mobile`, `email`, `status` e
+  `ignore_repeated`.
+- `ALEGRA_INVOICE_CREATE`: requiere `client_id`, `date`, `due_date` e `items`;
+  cada ítem requiere `id`, `price` y `quantity`. También admite `warehouse_id`,
+  `cost_center_id`, `status` y `observations`.
+
+El hub evita duplicados dentro de InsectMES, pero una respuesta de red ambigua debe
+conciliarse antes de reintentar porque el API externo no se declara exactamente una vez.
 
 ## Verificación
 

@@ -297,7 +297,7 @@ def first_page(canvas, doc):
         canvas.drawImage(str(BRAND_LOGO), 22 * mm, height - 36 * mm, width=56 * mm, height=20 * mm, preserveAspectRatio=True, mask="auto", anchor="c")
     canvas.setFillColor(colors.HexColor("#D0E8D9"))
     canvas.setFont(FONT, 8)
-    canvas.drawString(22 * mm, 17 * mm, "Documento de trabajo - 23 octubre 2026")
+    canvas.drawString(22 * mm, 17 * mm, "Documento de trabajo - 27 octubre 2026")
     canvas.restoreState()
 
 
@@ -675,7 +675,7 @@ def build_updated_story() -> list:
                 ],
                 [
                     P("Laboratorio, confiabilidad, roles, FEFO, logística, costos, firmas, mensajería y optimización multi-centro.", "CoverSub"),
-                    P("Evidencia documental, piloto real, conectores externos, PostgreSQL y alta disponibilidad.", "CoverSub"),
+                    P("Evidencia documental, piloto real, activación controlada de Alegra, otros conectores, PostgreSQL y alta disponibilidad.", "CoverSub"),
                 ],
             ],
             colWidths=[78 * mm, 78 * mm],
@@ -698,7 +698,7 @@ def build_updated_story() -> list:
     story += [
         P("1. Estado ejecutivo actualizado", "H1x"),
         P(
-            "InsectMES conserva el núcleo P0, amplía la Fase 1 e incorpora protocolos versionados, doble firma electrónica, un hub de integración auditable y selección automática entre centros primarios y alternos aprobados. Las aprobaciones de Fase 0 fueron confirmadas como completadas; su expediente sigue en verificación documental.",
+            "InsectMES conserva el núcleo P0, amplía la Fase 1 e incorpora protocolos versionados, doble firma electrónica, un hub de integración auditable, un conector seguro para Alegra y selección automática entre centros primarios y alternos aprobados. Las aprobaciones de Fase 0 fueron confirmadas como completadas; su expediente sigue en verificación documental.",
             "Callout",
         ),
         Table(
@@ -712,11 +712,11 @@ def build_updated_story() -> list:
         ),
         P("Dictamen", "H2x"),
         P(
-            "Puede utilizarse como MES de piloto para una línea BSF definida. Aún no debe declararse MES industrial completo para toda la empresa porque faltan el cierre documental de Fase 0, validación de ventanas biológicas con lotes reales, conectores efectivos con Plex, LIMS y equipos, PostgreSQL y alta disponibilidad probados, además de evidencia regulatoria por producto y mercado.",
+            "Puede utilizarse como MES de piloto para una línea BSF definida. Aún no debe declararse MES industrial completo para toda la empresa porque faltan el cierre documental de Fase 0, validación de ventanas biológicas con lotes reales, activación y prueba real de Alegra, conectores efectivos con Plex, LIMS y equipos, PostgreSQL y alta disponibilidad probados, además de evidencia regulatoria por producto y mercado.",
         ),
         P("Validación técnica ejecutada", "H2x"),
         *bullets([
-            "88 pruebas automatizadas ejecutadas: 86 aprobadas, 2 omitidas y 506 aserciones verificadas.",
+            "92 pruebas automatizadas ejecutadas: 90 aprobadas, 2 omitidas y 524 aserciones verificadas.",
             "Análisis estático PHP sin errores y compilación de React/TypeScript satisfactoria.",
             "Migración SQLite y datos iniciales reproducibles.",
             "Respaldo real con checksum SHA-256 e integrity_check satisfactorio; restauración aislada en 1 segundo con 94 tablas verificadas.",
@@ -751,7 +751,8 @@ def build_updated_story() -> list:
         ["Planeación finita", "Capacidad por centro y turno, prioridad de orden, precedencia de operaciones, división en segmentos, detección de tardanza y de operaciones sin capacidad; cada corrida conserva evidencia y supera a la anterior.", "Implementado F2"],
         ["Planeación BSF avanzada", "Campañas por familia, cambios y limpieza con tiempo reservado, BOM por operación, suministro futuro confirmado, asignación de materiales, ventanas de edad aprobadas y ocupación paralela para etapas biológicas continuas.", "Implementado F2"],
         ["Optimización multi-centro", "Centros alternos con calificación, prioridad, eficiencia y vigencia; selección por mejor término respetando capacidad, campaña y ventana biológica; el centro elegido pasa al control de piso y queda trazado en la corrida.", "Implementado F2"],
-        ["Hub de integración", "Catálogo de endpoints sin secretos, bandejas de entrada/salida idempotentes, hash SHA-256, reintentos exponenciales, cuarentena, bitácora de intentos, conciliación y procesamiento programado. LOCAL y FILE están verificados; HTTP está preparado.", "Implementado F2"],
+        ["Hub de integración", "Catálogo de endpoints sin secretos, bandejas idempotentes, hash SHA-256, reintentos, cuarentena, bitácora, conciliación y procesamiento programado. LOCAL y FILE están verificados; HTTP cuenta con pruebas controladas.", "Implementado F2"],
+        ["Conector Alegra preparado", "Dos endpoints inactivos para contactos y facturas; contratos validados, mapeo de campos, Basic Auth desde entorno, restricción a destinos HTTPS oficiales, activación por TI y cobertura de pruebas sin exponer credenciales.", "Implementado F2"],
     ]
     story += [
         P("2. Capacidades P0, Fase 1 y controles Fase 2", "H1x"),
@@ -773,13 +774,14 @@ def build_updated_story() -> list:
         ["Piloto y validación", "Ejecutar lotes reales, pruebas por rol, recall, restauración y aceptación del piloto con evidencia.", "P0 de negocio"],
         ["Calidad avanzada restante", "Validar límites y métodos, administrar equipos/reactivos y conectar un LIMS externo; consolidar el programa longitudinal de estabilidad.", "P1"],
         ["Mantenimiento restante", "Matriz de habilidades, planes predictivos, integración de sensores y contadores automáticos; validar KPIs con historial real.", "P1"],
-        ["Conectores externos", "Configurar contratos y credenciales reales, mapear datos y demostrar reconocimientos y conciliación con Plex ERP, básculas, PLC/SCADA, MQTT/OPC UA, impresoras, LIMS y almacenes.", "P1"],
+        ["Alegra en operación", "Cargar credenciales en el servidor, aprobar IDs y mapeo contable, activar los endpoints y demostrar una alta de contacto y una factura controladas con reconocimiento y conciliación reales.", "P1"],
+        ["Otros conectores externos", "Configurar contratos y credenciales reales, mapear datos y demostrar reconocimientos y conciliación con Plex ERP, básculas, PLC/SCADA, MQTT/OPC UA, impresoras, LIMS y almacenes.", "P1"],
         ["Continuidad productiva", "Migrar y probar PostgreSQL, copia fuera del equipo, monitoreo, RPO/RTO de negocio y recuperación sobre infraestructura distinta al servidor local.", "P1"],
         ["Analítica", "KPIs biológicos, SPC, predicción de cosecha, energía, capacidad y alertas por excepción.", "P2"],
     ]
     story += [
         P("3. Brechas que aún faltan", "H1x"),
-        P("La lista retira control de piso, roles, logística comercial, costeo real, firma electrónica, planeación finita, campañas, cambios, suministro futuro, ventanas biológicas, optimización multi-centro y el motor genérico de integración. Conserva únicamente verificación documental, validación real, conectores con sistemas físicos o externos y continuidad empresarial."),
+        P("La lista retira control de piso, roles, logística comercial, costeo real, firma electrónica, planeación finita, campañas, cambios, suministro futuro, ventanas biológicas, optimización multi-centro, el motor genérico de integración y la preparación técnica de Alegra. Conserva la activación y comprobación real de Alegra, la verificación documental, la validación operativa, otros conectores externos y la continuidad empresarial."),
         table(["Dominio", "Trabajo pendiente", "Prioridad"], remaining_rows, [39 * mm, 99 * mm, 26 * mm]),
         PageBreak(),
     ]
@@ -840,6 +842,7 @@ def build_updated_story() -> list:
 
     roadmap_rows = [
         ["Verificación Fase 0", "1-2 semanas", "Incorporar metadatos y referencias de evidencia existentes; revisar integridad del expediente sin repetir aprobaciones.", "Expediente verificable"],
+        ["Alegra controlado", "1-2 semanas", "Cargar credenciales fuera de la base, validar clientes, ítems, almacén y centro de costo, activar y conciliar contacto y factura de prueba.", "Reconocimiento real sin doble captura"],
         ["Piloto validado", "4-8 semanas", "Lotes reales, pruebas de usuario, recall, desviaciones controladas y restauración.", "Un lote sin registros paralelos críticos"],
         ["Completar Fase 1 avanzada", "6-10 semanas", "Validación de métodos/límites, equipos y reactivos, LIMS externo, sensores, contadores automáticos y mantenimiento predictivo.", "Laboratorio y confiabilidad conciliados"],
         ["Planta conectada", "8-14 semanas", "Usar el hub existente para enlazar sensores, básculas, PLC/SCADA, alarmas y OEE con contratos y evidencia reales.", "Datos automáticos conciliados"],
@@ -856,6 +859,7 @@ def build_updated_story() -> list:
             "Configurar en el módulo de validación los guiones por rol y capacitar operadores y supervisores.",
             "Ejecutar trazabilidad, cuarentena, alarma, bioseguridad, masa y recuperación.",
             "Definir RPO/RTO, copia externa y decisión de migración a PostgreSQL.",
+            "Validar el mapeo contable de Alegra, cargar las credenciales en el servidor y ejecutar contacto y factura controlados antes de habilitar uso productivo.",
             "Seleccionar un flujo con Plex y uno con equipo de planta para configurar endpoints HTTP reales y comprobar idempotencia, reintento y conciliación extremo a extremo.",
             "Validar en piso alimentación, CAPA, COA, retención, repuestos, paros, OEE, logística y costeo con responsables reales.",
         ]),
@@ -876,13 +880,13 @@ def build_updated_story() -> list:
             "Balance de masa e inventario concilian dentro de tolerancias firmadas.",
             "Mantenimiento y calibración condicionan uso de activos e instrumentos.",
             "Datos manuales y automáticos tienen dueño, calidad, alarma, contingencia y monitoreo.",
-            "Plex ERP y automatización operan sobre el hub existente con contratos, mensajes idempotentes, reintentos y conciliación demostrados extremo a extremo.",
+            "Alegra, Plex ERP y automatización operan sobre el hub existente con contratos, mensajes idempotentes, reintentos y conciliación demostrados extremo a extremo.",
             "RPO/RTO, respaldo externo, restauración, alta disponibilidad y soporte han sido probados.",
             "La matriz regulatoria y los expedientes de producto están aprobados para cada mercado.",
         ]),
         Spacer(1, 5 * mm),
         P(
-            "Conclusión: InsectMES ya cubre el núcleo P0, amplía la Fase 1 e incorpora validación controlada, firma electrónica, planeación finita y BSF por campañas, cambios, materiales, ventanas biológicas y centros alternos, además de un hub de integración probado localmente. La brecha principal es completar el expediente documental, ejecutar y aprobar el piloto con datos reales, conectar Plex, equipos y laboratorios, y demostrar la continuidad sobre infraestructura productiva.",
+            "Conclusión: InsectMES ya cubre el núcleo P0, amplía la Fase 1 e incorpora validación controlada, firma electrónica, planeación finita y BSF por campañas, cambios, materiales, ventanas biológicas y centros alternos, además de un hub probado localmente y un conector Alegra seguro e inactivo hasta su validación. La brecha principal es completar el expediente documental, ejecutar y aprobar el piloto con datos reales, activar y conciliar Alegra, conectar Plex, equipos y laboratorios, y demostrar la continuidad sobre infraestructura productiva.",
             "Callout",
         ),
         P("Documentos entregados", "H2x"),

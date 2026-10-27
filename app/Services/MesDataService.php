@@ -17,6 +17,8 @@ use Illuminate\Support\Facades\DB;
 
 class MesDataService
 {
+    public function __construct(private readonly IntegrationHubService $integrationHub) {}
+
     /** @return array<string, mixed> */
     public function dashboard(): array
     {
@@ -419,12 +421,20 @@ class MesDataService
     {
         $resolved = DB::table('integration_messages')->whereIn('status', ['ACKNOWLEDGED', 'FAILED', 'QUARANTINED'])->count();
         $acknowledged = DB::table('integration_messages')->where('status', 'ACKNOWLEDGED')->count();
+        $endpoints = DB::table('integration_endpoints as e')
+            ->leftJoin('users as u', 'u.id', '=', 'e.created_by')
+            ->orderByDesc('e.active')->orderBy('e.code')
+            ->get(['e.id', 'e.code', 'e.name', 'e.system', 'e.direction', 'e.transport', 'e.connector_driver', 'e.base_url', 'e.auth_scheme', 'e.username_env_key', 'e.secret_env_key', 'e.timeout_seconds', 'e.max_attempts', 'e.retry_backoff_seconds', 'e.active', 'e.health_status', 'e.last_health_at', 'e.last_health_message', 'u.name as created_by_name'])
+            ->map(function (object $endpoint): object {
+                $readiness = $this->integrationHub->endpointReadiness($endpoint);
+                $endpoint->runtime_ready = $readiness['ready'];
+                $endpoint->readiness_message = $readiness['message'];
+
+                return $endpoint;
+            });
 
         return [
-            'integrationEndpoints' => DB::table('integration_endpoints as e')
-                ->leftJoin('users as u', 'u.id', '=', 'e.created_by')
-                ->orderByDesc('e.active')->orderBy('e.code')
-                ->get(['e.id', 'e.code', 'e.name', 'e.system', 'e.direction', 'e.transport', 'e.base_url', 'e.secret_env_key', 'e.timeout_seconds', 'e.max_attempts', 'e.retry_backoff_seconds', 'e.active', 'e.health_status', 'e.last_health_at', 'e.last_health_message', 'u.name as created_by_name']),
+            'integrationEndpoints' => $endpoints,
             'integrationMessages' => DB::table('integration_messages as m')
                 ->join('integration_endpoints as e', 'e.id', '=', 'm.integration_endpoint_id')
                 ->leftJoin('users as u', 'u.id', '=', 'm.created_by')
@@ -440,9 +450,10 @@ class MesDataService
                 ->leftJoin('users as u', 'u.id', '=', 'r.generated_by')
                 ->orderByDesc('r.generated_at')->limit(100)
                 ->get(['r.id', 'e.code as endpoint_code', 'r.period_from', 'r.period_to', 'r.expected_count', 'r.observed_count', 'r.acknowledged_count', 'r.failed_count', 'r.difference', 'r.status', 'r.notes', 'r.generated_at', 'u.name as generated_by_name']),
-            'activeIntegrationEndpoints' => DB::table('integration_endpoints')->where('active', true)->orderBy('code')->get(['id', 'code', 'name', 'direction', 'transport']),
+            'activeIntegrationEndpoints' => DB::table('integration_endpoints')->where('active', true)->orderBy('code')->get(['id', 'code', 'name', 'direction', 'transport', 'connector_driver']),
             'integrationSummary' => [
                 'activeEndpoints' => DB::table('integration_endpoints')->where('active', true)->count(),
+                'alegraReadyEndpoints' => $endpoints->where('connector_driver', 'ALEGRA')->where('runtime_ready', true)->count(),
                 'pendingMessages' => DB::table('integration_messages')->whereIn('status', ['PENDING', 'PROCESSING', 'FAILED'])->count(),
                 'quarantinedMessages' => DB::table('integration_messages')->where('status', 'QUARANTINED')->count(),
                 'successRate' => $resolved > 0 ? round(($acknowledged / $resolved) * 100, 1) : 0,

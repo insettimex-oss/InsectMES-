@@ -40,6 +40,7 @@ Route::middleware(['auth', 'verified', 'password.changed'])->group(function () {
     Route::patch('mes/validation/runs/{run}/complete', [MesValidationController::class, 'completeRun'])->middleware('permission:validation.write')->name('mes.validation.runs.complete');
     Route::patch('mes/validation/runs/{run}/approve', [MesValidationController::class, 'approveRun'])->middleware('permission:validation.approve')->name('mes.validation.runs.approve');
     Route::post('mes/integrations/endpoints', [MesIntegrationController::class, 'createEndpoint'])->middleware('permission:integrations.admin')->name('mes.integrations.endpoints.store');
+    Route::patch('mes/integrations/endpoints/{endpoint}/status', [MesIntegrationController::class, 'updateEndpointStatus'])->middleware('permission:integrations.admin')->name('mes.integrations.endpoints.status');
     Route::post('mes/integrations/messages/outbound', [MesIntegrationController::class, 'queueOutbound'])->middleware('permission:integrations.write')->name('mes.integrations.messages.outbound');
     Route::post('mes/integrations/messages/inbound', [MesIntegrationController::class, 'ingestInbound'])->middleware('permission:integrations.write')->name('mes.integrations.messages.inbound');
     Route::post('mes/integrations/messages/{message}/dispatch', [MesIntegrationController::class, 'dispatch'])->middleware('permission:integrations.admin')->name('mes.integrations.messages.dispatch');

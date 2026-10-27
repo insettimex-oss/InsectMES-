@@ -6,12 +6,17 @@ use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Throwable;
 
 class IntegrationHubService
 {
+    private const ALEGRA_CONTACTS_URL = 'https://api.alegra.com/api/v1/contacts';
+
+    private const ALEGRA_INVOICES_URL = 'https://api.alegra.com/api/v1/invoices';
+
     /**
      * @param  array<string, mixed>  $payload
      * @return array{message: IntegrationMessageRecord, duplicate: bool}
@@ -33,6 +38,9 @@ class IntegrationHubService
         }
         if (! in_array($endpoint->direction, [$direction, 'BIDIRECTIONAL'], true)) {
             throw ValidationException::withMessages(['direction' => 'La dirección del mensaje no está permitida para este endpoint.']);
+        }
+        if ($direction === 'OUTBOUND' && ($endpoint->connector_driver ?? 'GENERIC') === 'ALEGRA') {
+            $this->prepareAlegraPayload((string) $endpoint->base_url, $messageType, $payload);
         }
 
         $canonicalPayload = $this->canonicalJson($payload);
@@ -226,9 +234,19 @@ class IntegrationHubService
             'X-Correlation-ID' => $message->correlationId ?: $message->uuid,
             'X-InsectMES-Message-ID' => $message->uuid,
         ]);
-        if (! empty($endpoint->secretEnvKey)) {
-            $secret = getenv($endpoint->secretEnvKey);
-            if (is_string($secret) && $secret !== '') {
+        if ($endpoint->connectorDriver === 'ALEGRA') {
+            $payload = $this->prepareAlegraPayload($endpoint->baseUrl, $message->messageType, $payload);
+            $readiness = $this->endpointReadiness($endpoint);
+            if (! $readiness['ready']) {
+                throw ValidationException::withMessages(['credentials' => $readiness['message']]);
+            }
+            $request = $request->withBasicAuth(
+                (string) $this->credential($endpoint->usernameEnvKey),
+                (string) $this->credential($endpoint->secretEnvKey),
+            );
+        } elseif ($endpoint->authScheme === 'BEARER' && ! empty($endpoint->secretEnvKey)) {
+            $secret = $this->credential($endpoint->secretEnvKey);
+            if ($secret !== null) {
                 $request = $request->withToken($secret);
             }
         }
@@ -242,6 +260,155 @@ class IntegrationHubService
             'excerpt' => $excerpt,
             'error' => $response->successful() ? null : "HTTP {$response->status()}: {$excerpt}",
         ];
+    }
+
+    /** @return array{ready: bool, message: string} */
+    public function endpointReadiness(object $endpoint): array
+    {
+        $record = $endpoint instanceof IntegrationEndpointRecord ? $endpoint : $this->hydrateEndpoint($endpoint);
+        if ($record->connectorDriver !== 'ALEGRA') {
+            if ($record->authScheme === 'NONE') {
+                return ['ready' => true, 'message' => 'No requiere credenciales.'];
+            }
+
+            return $this->credential($record->secretEnvKey) !== null
+                ? ['ready' => true, 'message' => 'Referencia de credencial disponible.']
+                : ['ready' => false, 'message' => 'Falta la credencial indicada por el endpoint.'];
+        }
+
+        try {
+            $this->validateEndpointConfiguration($record);
+        } catch (ValidationException $exception) {
+            return ['ready' => false, 'message' => $exception->getMessage()];
+        }
+
+        if ($this->credential($record->usernameEnvKey) === null || $this->credential($record->secretEnvKey) === null) {
+            return ['ready' => false, 'message' => 'Faltan ALEGRA_API_EMAIL o ALEGRA_API_TOKEN en el entorno del servidor.'];
+        }
+
+        return ['ready' => true, 'message' => 'Credenciales referenciadas y destino oficial verificado.'];
+    }
+
+    public function validateEndpointConfiguration(object $endpoint): void
+    {
+        $record = $endpoint instanceof IntegrationEndpointRecord ? $endpoint : $this->hydrateEndpoint($endpoint);
+        if ($record->connectorDriver !== 'ALEGRA') {
+            return;
+        }
+        $this->assertAlegraUrl((string) $record->baseUrl);
+        if ($record->transport !== 'HTTP' || $record->authScheme !== 'BASIC_ENV') {
+            throw ValidationException::withMessages(['connector_driver' => 'Alegra requiere transporte HTTP y autenticación BASIC_ENV.']);
+        }
+        if ($record->usernameEnvKey !== 'ALEGRA_API_EMAIL' || $record->secretEnvKey !== 'ALEGRA_API_TOKEN') {
+            throw ValidationException::withMessages(['credentials' => 'Alegra solo admite las referencias ALEGRA_API_EMAIL y ALEGRA_API_TOKEN.']);
+        }
+    }
+
+    /** @param array<string, mixed> $payload
+     * @return array<string, mixed>
+     */
+    private function prepareAlegraPayload(string $url, string $messageType, array $payload): array
+    {
+        $resource = $this->assertAlegraUrl($url);
+        if ($resource === 'contacts') {
+            if ($messageType !== 'ALEGRA_CONTACT_CREATE') {
+                throw ValidationException::withMessages(['message_type' => 'El endpoint de contactos solo admite ALEGRA_CONTACT_CREATE.']);
+            }
+            $data = Validator::make($payload, [
+                'name' => ['required', 'string', 'max:180'],
+                'identification' => ['nullable', 'string', 'max:80'],
+                'address' => ['nullable', 'array'],
+                'phone_primary' => ['nullable', 'string', 'max:80'],
+                'phone_secondary' => ['nullable', 'string', 'max:80'],
+                'mobile' => ['nullable', 'string', 'max:80'],
+                'email' => ['nullable', 'email', 'max:180'],
+                'status' => ['nullable', 'in:active,inactive'],
+                'ignore_repeated' => ['nullable', 'boolean'],
+            ], [
+                'name.required' => 'El contrato de contacto Alegra requiere name.',
+            ])->validate();
+
+            return array_filter([
+                'name' => $data['name'],
+                'identification' => $data['identification'] ?? null,
+                'address' => $data['address'] ?? null,
+                'phonePrimary' => $data['phone_primary'] ?? null,
+                'phoneSecondary' => $data['phone_secondary'] ?? null,
+                'mobile' => $data['mobile'] ?? null,
+                'email' => $data['email'] ?? null,
+                'status' => $data['status'] ?? null,
+                'ignoreRepeated' => $data['ignore_repeated'] ?? null,
+            ], static fn (mixed $value): bool => $value !== null && $value !== '');
+        }
+
+        if ($messageType !== 'ALEGRA_INVOICE_CREATE') {
+            throw ValidationException::withMessages(['message_type' => 'El endpoint de facturas solo admite ALEGRA_INVOICE_CREATE.']);
+        }
+        $data = Validator::make($payload, [
+            'client_id' => ['required'],
+            'date' => ['required', 'date_format:Y-m-d'],
+            'due_date' => ['required', 'date_format:Y-m-d', 'after_or_equal:date'],
+            'items' => ['required', 'array', 'min:1'],
+            'items.*.id' => ['required'],
+            'items.*.price' => ['required', 'numeric', 'gte:0'],
+            'items.*.quantity' => ['required', 'numeric', 'gt:0'],
+            'items.*.reference' => ['nullable', 'string', 'max:100'],
+            'items.*.description' => ['nullable', 'string', 'max:500'],
+            'status' => ['nullable', 'in:draft,open'],
+            'warehouse_id' => ['nullable'],
+            'cost_center_id' => ['nullable'],
+            'observations' => ['nullable', 'string', 'max:500'],
+        ], [
+            'client_id.required' => 'El contrato de factura Alegra requiere client_id.',
+            'items.required' => 'El contrato de factura Alegra requiere al menos un item.',
+        ])->validate();
+        $items = array_map(static fn (array $item): array => array_filter([
+            'id' => $item['id'],
+            'price' => (float) $item['price'],
+            'quantity' => (float) $item['quantity'],
+            'reference' => $item['reference'] ?? null,
+            'description' => $item['description'] ?? null,
+        ], static fn (mixed $value): bool => $value !== null && $value !== ''), $data['items']);
+
+        return array_filter([
+            'client' => $data['client_id'],
+            'date' => $data['date'],
+            'dueDate' => $data['due_date'],
+            'items' => $items,
+            'status' => $data['status'] ?? null,
+            'warehouse' => $data['warehouse_id'] ?? null,
+            'costCenter' => $data['cost_center_id'] ?? null,
+            'observations' => $data['observations'] ?? null,
+        ], static fn (mixed $value): bool => $value !== null && $value !== '');
+    }
+
+    private function assertAlegraUrl(string $url): string
+    {
+        $normalized = rtrim($url, '/');
+        $parts = parse_url($normalized);
+        $allowed = [
+            self::ALEGRA_CONTACTS_URL => 'contacts',
+            self::ALEGRA_INVOICES_URL => 'invoices',
+        ];
+        if (($parts['scheme'] ?? '') !== 'https' || ($parts['host'] ?? '') !== 'api.alegra.com' || ! isset($allowed[$normalized])) {
+            throw ValidationException::withMessages(['base_url' => 'Alegra solo puede usar sus endpoints HTTPS oficiales de contacts o invoices.']);
+        }
+
+        return $allowed[$normalized];
+    }
+
+    private function credential(?string $key): ?string
+    {
+        if ($key === null || $key === '') {
+            return null;
+        }
+        $configured = match ($key) {
+            'ALEGRA_API_EMAIL' => config('services.alegra.email'),
+            'ALEGRA_API_TOKEN' => config('services.alegra.token'),
+            default => getenv($key),
+        };
+
+        return is_string($configured) && trim($configured) !== '' ? trim($configured) : null;
     }
 
     /** @param array<string, mixed> $payload */
@@ -301,7 +468,10 @@ class IntegrationHubService
             id: (int) ($data['id'] ?? 0),
             code: (string) ($data['code'] ?? ''),
             transport: (string) ($data['transport'] ?? ''),
+            connectorDriver: (string) ($data['connector_driver'] ?? 'GENERIC'),
             baseUrl: isset($data['base_url']) ? (string) $data['base_url'] : null,
+            authScheme: (string) ($data['auth_scheme'] ?? (! empty($data['secret_env_key']) ? 'BEARER' : 'NONE')),
+            usernameEnvKey: isset($data['username_env_key']) ? (string) $data['username_env_key'] : null,
             secretEnvKey: isset($data['secret_env_key']) ? (string) $data['secret_env_key'] : null,
             timeoutSeconds: (int) ($data['timeout_seconds'] ?? 30),
             maxAttempts: (int) ($data['max_attempts'] ?? 3),
@@ -334,7 +504,10 @@ final readonly class IntegrationEndpointRecord
         public int $id,
         public string $code,
         public string $transport,
+        public string $connectorDriver,
         public ?string $baseUrl,
+        public string $authScheme,
+        public ?string $usernameEnvKey,
         public ?string $secretEnvKey,
         public int $timeoutSeconds,
         public int $maxAttempts,
