@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Http\Controllers\Rev031WorkspaceController;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -40,6 +41,9 @@ class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
             'name' => config('app.name'),
+            'workspaceBootstrap' => fn () => $user && $request->is('dashboard', 'mes/*', 'settings/*')
+                && (! $request->is('settings/*') || $user->hasPermission('dashboard.read'))
+                ? app(Rev031WorkspaceController::class)->bootstrap($request)->getData(true) : null,
             'auth' => [
                 'user' => $user ? [
                     ...$user->toArray(),

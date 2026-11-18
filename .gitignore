@@ -2,6 +2,12 @@
 /bootstrap/ssr
 /node_modules
 /public/build
+/public/rev031/
+/resources/js/lib/rev031-build.json
+/resources/js/lib/rev031-markup.json
+/resources/js/lib/rev031-menu.json
+/.local/
+/InsectMES-Rev031/
 /public/fonts-manifest.dev.json
 /public/hot
 /public/storage

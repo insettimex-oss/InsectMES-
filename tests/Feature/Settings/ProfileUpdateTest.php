@@ -19,6 +19,8 @@ class ProfileUpdateTest extends TestCase
             ->get(route('profile.edit'));
 
         $response->assertOk();
+        $response->assertInertia(fn ($page) => $page->where('workspaceBootstrap', null));
+        $this->getJson('/mes/rev031/bootstrap')->assertForbidden();
     }
 
     public function test_profile_information_can_be_updated()

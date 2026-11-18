@@ -1,0 +1,7 @@
+dialog.record-workspace31{display:block;position:static;margin:0;border:0;padding:0;max-width:none;width:100%;max-height:none;box-shadow:none;background:transparent;color:inherit;overflow:visible}
+dialog.record-workspace31>.concept-head[hidden]{display:none}
+dialog.record-workspace31 .ops-dialog{padding:0}
+.record-card31 .ops-fields{grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:20px;align-items:start}
+.record-card31 .ops-dialog>.ops-fields{border:0;padding:0;margin:0 0 22px}
+.record-card31 .capture-actions{margin-top:24px}
+@media(max-width:600px){.record-card31 .ops-fields{grid-template-columns:1fr}.record-card31 .capture-actions{flex-wrap:wrap}}

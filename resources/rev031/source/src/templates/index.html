@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>InsectMES · Rev031</title>
+<link rel="stylesheet" href="assets/app.css">
+</head>
+<body>
+<div class="app sidebar-hidden" id="app">
+  <button class="sidebar-show" id="sidebarShowBtn">âžœ</button>
+  <header class="topbar menu29-bar"><b id="pageTitle"></b></header>
+  <aside class="sidebar menu29-side" id="sidebar">
+    <div class="sidebar-top" hidden>
+      <div class="brand" onclick="goHome()">
+        <div class="brand-icon">i</div>
+        <div class="brand-title">Insetti MES</div>
+      </div>
+      <button class="sidebar-hide" id="sidebarHideBtn">â—€</button>
+    </div>
+    <a class="menu29-brand" href="#/home" aria-label="Insetti, Inicio"><img src="assets/insetti-logo.png" alt="Insetti"></a>
+    <nav id="nav" aria-label="Módulos y aplicaciones"></nav>
+  </aside>
+
+  <main class="main">
+    <section class="view" id="view-dashboard"></section>
+    <section class="view" id="view-receipts"></section>
+    <section class="view" id="view-inventory"></section>
+    <section class="view" id="view-movements"></section>
+    <section class="view" id="view-workcenters"></section>
+    <section class="view" id="view-genealogy"></section>
+    <section class="view" id="view-catalogs"></section>
+  </main>
+  <aside id="assistant-panel30" class="assistant-panel30" aria-labelledby="assistant-title30" hidden>
+    <div class="assistant-grip30" role="separator" tabindex="0" aria-label="Ancho del asistente" aria-orientation="vertical"></div>
+    <div class="assistant-head30">
+      <h2 id="assistant-title30">Asistente de IA</h2>
+      <button class="toolbar-icon assistant-width30" type="button" onclick="toggleAssistantWidth30()" aria-label="Ampliar panel" title="Ampliar panel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/></svg></button>
+      <button class="toolbar-icon" type="button" onclick="toggleAssistant30()" aria-label="Cerrar asistente" title="Cerrar asistente">×</button>
+    </div>
+    <div class="assistant-body30"></div>
+  </aside>
+</div>
+<div class="msg" id="msg"></div>
+
+<script src="assets/app.js"></script>
+</body>
+</html>

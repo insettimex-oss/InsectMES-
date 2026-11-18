@@ -1,0 +1,272 @@
+[
+  {
+    "id": "home",
+    "module": "dashboard",
+    "name": "Inicio"
+  },
+  {
+    "id": "parts",
+    "module": "engineering",
+    "name": "No Parte"
+  },
+  {
+    "id": "units",
+    "module": "engineering",
+    "name": "Unidades"
+  },
+  {
+    "id": "locations",
+    "module": "engineering",
+    "name": "Ubicaciones"
+  },
+  {
+    "id": "operations",
+    "module": "engineering",
+    "name": "Operations"
+  },
+  {
+    "id": "wcs",
+    "module": "engineering",
+    "name": "Work Centers"
+  },
+  {
+    "id": "routing",
+    "module": "engineering",
+    "name": "Process Routing"
+  },
+  {
+    "id": "bom",
+    "module": "engineering",
+    "name": "BOM"
+  },
+  {
+    "id": "bsf-cycle",
+    "module": "engineering",
+    "name": "BSF Cycle"
+  },
+  {
+    "id": "inventory",
+    "module": "inventory",
+    "name": "Inventario"
+  },
+  {
+    "id": "containers",
+    "module": "inventory",
+    "name": "Contenedores (Move / Split / Merge)"
+  },
+  {
+    "id": "lots",
+    "module": "inventory",
+    "name": "Lotes"
+  },
+  {
+    "id": "trace",
+    "module": "traceability",
+    "name": "Trazabilidad"
+  },
+  {
+    "id": "movements",
+    "module": "inventory",
+    "name": "Movimientos"
+  },
+  {
+    "id": "receive",
+    "module": "inventory",
+    "name": "Recibo OC"
+  },
+  {
+    "id": "receipts",
+    "module": "inventory",
+    "name": "Recepciones"
+  },
+  {
+    "id": "finalizar",
+    "module": "inventory",
+    "name": "Finalizar recepción"
+  },
+  {
+    "id": "oc",
+    "module": "inventory",
+    "name": "OC"
+  },
+  {
+    "id": "proveedores",
+    "module": "inventory",
+    "name": "Proveedores"
+  },
+  {
+    "id": "control",
+    "module": "production",
+    "name": "Control Panel"
+  },
+  {
+    "id": "rearing",
+    "module": "production",
+    "name": "Bioconversión"
+  },
+  {
+    "id": "reproduction",
+    "module": "production",
+    "name": "Reproducción"
+  },
+  {
+    "id": "postprocess",
+    "module": "production",
+    "name": "Postproceso"
+  },
+  {
+    "id": "pack",
+    "module": "production",
+    "name": "Empaque"
+  },
+  {
+    "id": "nursery",
+    "module": "production",
+    "name": "Guardería"
+  },
+  {
+    "id": "incubators",
+    "module": "production",
+    "name": "Incubadoras"
+  },
+  {
+    "id": "job-manager",
+    "module": "planning",
+    "name": "Job Manager"
+  },
+  {
+    "id": "capacity-planning",
+    "module": "planning",
+    "name": "Capacity Planning"
+  },
+  {
+    "id": "mrp",
+    "module": "planning",
+    "name": "MRP"
+  },
+  {
+    "id": "prp",
+    "module": "planning",
+    "name": "PRP"
+  },
+  {
+    "id": "equipos",
+    "module": "maintenance",
+    "name": "Equipos"
+  },
+  {
+    "id": "calendario-pm",
+    "module": "maintenance",
+    "name": "Calendario PM"
+  },
+  {
+    "id": "checklist-pm",
+    "module": "maintenance",
+    "name": "Checklist PM"
+  },
+  {
+    "id": "checklist",
+    "module": "quality",
+    "name": "Checklist"
+  },
+  {
+    "id": "settings",
+    "module": "administration",
+    "name": "Settings"
+  },
+  {
+    "id": "setup",
+    "module": "administration",
+    "name": "Setup Tables"
+  },
+  {
+    "id": "empresa",
+    "module": "administration",
+    "name": "Empresa"
+  },
+  {
+    "id": "labels",
+    "module": "administration",
+    "name": "Etiquetas"
+  },
+  {
+    "id": "label-designer",
+    "module": "administration",
+    "name": "Diseñador de etiquetas"
+  },
+  {
+    "id": "parameters",
+    "module": "administration",
+    "name": "Parámetros"
+  },
+  {
+    "id": "coststructure",
+    "module": "costs",
+    "name": "Cost Structure"
+  },
+  {
+    "id": "reports",
+    "module": "dashboard",
+    "name": "Reportes"
+  },
+  {
+    "id": "pedidos",
+    "module": "logistics",
+    "name": "Pedidos"
+  },
+  {
+    "id": "shipping",
+    "module": "logistics",
+    "name": "Envíos"
+  },
+  {
+    "id": "audit",
+    "module": "audit",
+    "name": "Auditoría"
+  },
+  {
+    "id": "continuidad",
+    "module": "continuity",
+    "name": "Continuidad"
+  },
+  {
+    "id": "fase-cero",
+    "module": "governance",
+    "name": "Fase cero"
+  },
+  {
+    "id": "validacion",
+    "module": "validation",
+    "name": "Validación"
+  },
+  {
+    "id": "integraciones",
+    "module": "integrations",
+    "name": "Integraciones"
+  },
+  {
+    "id": "users",
+    "module": "users",
+    "name": "Usuarios"
+  },
+  {
+    "id": "profiles",
+    "module": "users",
+    "name": "Roles"
+  },
+  {
+    "id": "help",
+    "module": "dashboard",
+    "name": "Ayuda"
+  },
+  {
+    "id": "hierarchy",
+    "module": "administration",
+    "name": "Jerarquía"
+  },
+  {
+    "id": "requisitions",
+    "name": "Requisiciones",
+    "module": "requisitions"
+  }
+]

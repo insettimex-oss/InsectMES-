@@ -1,0 +1,16 @@
+.transfer-station31 {text-align:left; padding:18px; align-self:start}
+.transfer-station31 > h2 {font-size:23px; margin:0 0 14px}
+.transfer-station31 fieldset {border:0; padding:0; margin:0; min-width:0}
+.transfer-station31 .capture-parameters {border:0; margin:0; padding:0; background:transparent}
+.transfer-station31 .capture-meta {margin:12px 0; gap:8px; font-size:11px}
+.transfer-station31 .parameter-grid {display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px 12px}
+.transfer-station31 .parameter-grid label {min-width:0; font-size:12px; gap:5px}
+.transfer-station31 input,.transfer-station31 select {height:38px; min-height:38px; padding:7px 10px}
+.transfer-station31 textarea {min-height:58px}
+.transfer-station31 .sample-required31 {color:#a45015}
+#transfer_sample_warning31 {font-size:13px; color:#965011}
+.bom-byproducts31 {margin:20px 0; overflow-x:auto}
+.bom-byproducts31 table {width:100%; border-collapse:collapse}
+.bom-byproducts31 th,.bom-byproducts31 td {padding:12px; border-bottom:1px solid #dce5df; text-align:left}
+@media(max-width:1200px){.transfer-station31 .parameter-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.transfer-station31 .parameter-grid{grid-template-columns:1fr}}

@@ -6,6 +6,7 @@ use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\AuditService;
+use App\Services\RoleScreenAccess;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -20,6 +21,7 @@ class UserAdministrationController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        abort_unless(app(RoleScreenAccess::class)->allows($request->user(), 'users'), 403);
         $data = $request->validate([
             'name' => ['required', 'string', 'max:120'],
             'email' => ['required', 'email', 'max:180', 'unique:users,email'],
@@ -44,7 +46,9 @@ class UserAdministrationController extends Controller
                 'must_change_password' => (bool) ($data['must_change_password'] ?? true),
                 'email_verified_at' => now(),
             ]);
-            $this->syncPermissionOverrides($user, $role, $data['permissions'] ?? []);
+            if (array_key_exists('permissions', $data)) {
+                $this->syncPermissionOverrides($user, $role, $data['permissions'] ?? $role->permissions()->pluck('permissions.key')->all());
+            }
             $this->audit->record($request, 'USER_CREATED', $user, 'Alta de usuario desde administración', null, [
                 'name' => $user->name, 'email' => $user->email, 'role' => $role->slug,
                 'permissions' => $user->effectivePermissionKeys(),
@@ -60,6 +64,7 @@ class UserAdministrationController extends Controller
 
     public function update(Request $request, User $user): RedirectResponse
     {
+        abort_unless(app(RoleScreenAccess::class)->allows($request->user(), 'users'), 403);
         $data = $request->validate([
             'name' => ['required', 'string', 'max:120'],
             'email' => ['required', 'email', 'max:180', Rule::unique('users', 'email')->ignore($user->id)],
@@ -95,8 +100,13 @@ class UserAdministrationController extends Controller
                 $attributes['password'] = $data['password'];
                 $attributes['must_change_password'] = true;
             }
+            $roleChanged = $user->role_id !== $role->id;
             $user->update($attributes);
-            $this->syncPermissionOverrides($user, $role, $data['permissions'] ?? []);
+            if (array_key_exists('permissions', $data)) {
+                $this->syncPermissionOverrides($user, $role, $data['permissions']);
+            } elseif ($roleChanged) {
+                $user->permissionOverrides()->detach();
+            }
             $this->audit->record($request, 'USER_UPDATED', $user, 'Actualización de rol y permisos', $before, [
                 'name' => $user->name, 'email' => $user->email, 'role' => $role->slug,
                 'is_active' => $user->is_active, 'permissions' => $user->effectivePermissionKeys(),

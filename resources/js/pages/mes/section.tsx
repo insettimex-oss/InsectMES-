@@ -404,9 +404,9 @@ const meta: Record<
         icon: FlaskConical,
     },
     users: {
-        title: 'Usuarios y accesos',
+        title: 'Usuarios',
         kicker: 'SEGURIDAD',
-        description: 'Roles por área y permisos efectivos de cada cuenta.',
+        description: 'Administración de cuentas y asignación de roles.',
         icon: Users,
     },
 };

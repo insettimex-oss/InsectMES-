@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Role;
 use App\Models\User;
+use App\Services\RoleScreenAccess;
 use Database\Seeders\AccessControlSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -33,8 +34,9 @@ class AccessControlTest extends TestCase
         $operator->update(['must_change_password' => false]);
         $this->actingAs($operator);
 
-        $this->get('/mes/control')->assertOk();
-        $this->get('/mes/inventory')->assertOk();
+        $this->get('/mes/control')->assertRedirect('/dashboard#/control');
+        $this->get('/mes/inventory')->assertRedirect('/dashboard#/inventory');
+        $this->getJson('/mes/rev031/bootstrap')->assertOk()->assertJsonPath('levels.control', 2);
         $this->get('/mes/users')->assertForbidden();
         $this->get('/mes/quality')->assertForbidden();
     }
@@ -45,7 +47,7 @@ class AccessControlTest extends TestCase
         $quality->update(['must_change_password' => false]);
         $this->actingAs($quality);
 
-        $this->get('/mes/quality')->assertOk();
+        $this->get('/mes/quality')->assertRedirect('/dashboard#/checklist');
         $this->post('/mes/production', [])->assertForbidden();
         $this->post('/mes/quality/inspections', [])->assertSessionHasErrors();
     }
@@ -106,5 +108,54 @@ class AccessControlTest extends TestCase
         ])->assertSessionHasErrors('role_id');
 
         $this->assertSame('admin', $admin->fresh()->role);
+    }
+
+    public function test_roles_can_be_configured_separately_and_screen_access_is_enforced(): void
+    {
+        $admin = User::where('role', 'admin')->firstOrFail();
+        $operator = User::where('email', 'operador@insetti.com')->firstOrFail();
+        $operator->update(['must_change_password' => false]);
+        $role = Role::where('slug', 'operator')->firstOrFail();
+        $this->actingAs($admin)->get('/mes/roles')->assertOk();
+        $this->patch('/mes/roles/'.$role->id, [
+            'name' => $role->name, 'area' => $role->area, 'description' => $role->description,
+            'permissions' => $role->permissions()->pluck('permissions.key')->all(),
+            'screens' => ['home', 'control'],
+        ])->assertRedirect()->assertSessionHasNoErrors();
+        $this->actingAs($operator)->getJson('/mes/rev031/bootstrap')->assertOk()
+            ->assertJsonPath('levels.control', 2)->assertJsonPath('levels.inventory', 0);
+        $this->get('/mes/inventory')->assertForbidden();
+        $this->get('/mes/roles')->assertForbidden();
+        $this->assertDatabaseHas('audit_events', ['event' => 'ROLE_UPDATED']);
+    }
+
+    public function test_new_account_inherits_assigned_role_without_individual_permission_payload(): void
+    {
+        $admin = User::where('role', 'admin')->firstOrFail();
+        $role = Role::where('slug', 'operator')->firstOrFail();
+        $this->actingAs($admin)->post('/mes/users', [
+            'name' => 'Cuenta de rol', 'email' => 'role-test@example.test', 'company' => 'Insetti', 'role_id' => $role->id,
+            'password' => 'TempPass2026!', 'password_confirmation' => 'TempPass2026!',
+        ])->assertRedirect()->assertSessionHasNoErrors();
+        $user = User::where('email', 'role-test@example.test')->firstOrFail();
+        $this->assertSame(0, $user->permissionOverrides()->count());
+        $this->assertTrue($user->hasPermission('production.write'));
+    }
+
+    public function test_administrator_can_create_role_and_cannot_remove_recovery_access(): void
+    {
+        $admin = User::where('role', 'admin')->firstOrFail();
+        $this->actingAs($admin)->post('/mes/roles', [
+            'name' => 'Consulta de inventario', 'area' => 'Almacén', 'description' => 'Consulta de contenedores',
+            'permissions' => ['dashboard.read', 'inventory.read'], 'screens' => ['home', 'containers'],
+        ])->assertRedirect()->assertSessionHasNoErrors();
+        $role = Role::where('name', 'Consulta de inventario')->firstOrFail();
+        $this->assertSame(['dashboard.read', 'inventory.read'], $role->permissions()->orderBy('key')->pluck('key')->all());
+        $this->assertSame(['home', 'containers'], app(RoleScreenAccess::class)->forRole($role->id));
+        $this->patch('/mes/roles/'.$admin->role_id, [
+            'name' => 'Administrador', 'area' => 'Administración', 'description' => 'Recuperación', 'permissions' => [], 'screens' => [],
+        ])->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertTrue($admin->fresh()->hasPermission('users.manage'));
+        $this->assertTrue(app(RoleScreenAccess::class)->allows($admin->fresh(), 'profiles'));
     }
 }

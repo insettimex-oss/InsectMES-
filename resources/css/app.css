@@ -1,5 +1,11 @@
 @import 'tailwindcss';
 
+.rev031-native-navigation{padding:8px 12px;font-size:14px}
+.rev031-native-navigation a,.rev031-native-menu summary{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:7px;text-decoration:none;cursor:pointer}
+.rev031-native-navigation a:hover,.rev031-native-menu summary:hover{background:color-mix(in srgb,currentColor 9%,transparent)}
+.rev031-native-menu>div{padding-left:13px;border-left:1px solid #ffffff20;margin-left:14px}
+.rev031-native-caption{font-size:12px;letter-spacing:.06em;opacity:.65;padding:18px 10px 7px}
+
 @import 'tw-animate-css';
 
 @source '../views';

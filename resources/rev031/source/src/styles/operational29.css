@@ -1,0 +1,59 @@
+.ops-fields {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px 18px;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.ops-fields .field, .ops-line .field { min-width: 0; }
+.ops-fields input, .ops-fields select, .ops-line input, .ops-line select { width: 100%; min-width: 0; }
+.ops-check { display: flex; align-items: center; gap: 8px; align-self: end; min-height: 42px; }
+.ops-check input { width: auto; }
+.ops-filters {
+  padding: 16px;
+  margin-bottom: 16px;
+  border: 1px solid var(--menu-line, #dce5de);
+  border-radius: 8px;
+  background: #f7f9f7;
+}
+.ops-filter-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+.ops-actions { padding-bottom: 14px; border-bottom: 1px solid #e3eae5; }
+.ops-count, .ops-method { margin: 10px 0; color: #52655c; font-size: 13px; }
+#ops29-results td:first-child { white-space: nowrap; }
+#ops29-results .ops-overload td { background: #fff1e6; }
+#ops29-results .ops-overload td:nth-child(5) { color: #964015; font-weight: 700; }
+.ops-dialog { display: grid; gap: 14px; padding-top: 12px; }
+.ops-dialog h3 { margin: 0; }
+.ops-dialog .capture-actions { margin: 0; }
+.ops-line {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) repeat(2, minmax(0, 1fr)) auto;
+  align-items: end;
+  gap: 10px;
+  border: 1px solid #e3eae5;
+  border-radius: 8px;
+  min-width: 0;
+  margin: 0 0 8px;
+  padding: 12px;
+}
+.ops-dialog > .btn { justify-self: start; }
+.engineering-centers {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-height: 240px;
+  overflow: auto;
+}
+.engineering-centers .ops-check { min-height: 28px; }
+#ops29-calendar-fields { display: contents; }
+@media (max-width: 880px) {
+  .ops-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ops-line { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ops-line .field:first-child { grid-column: 1 / -1; }
+  .ops-remove-line { justify-self: start; }
+}
+@media (max-width: 520px) {
+  .ops-fields { grid-template-columns: minmax(0, 1fr); }
+  .engineering-centers { grid-template-columns: minmax(0, 1fr); }
+}
+
