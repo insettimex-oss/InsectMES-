@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" @class(['dark' => ($appearance ?? 'system') == 'dark'])>
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" data-mes-environment="{{ app()->environment('sandbox') ? 'sandbox' : 'local' }}" data-primary-url="{{ config('environment-switch.primary_url') }}" data-sandbox-url="{{ config('environment-switch.sandbox_url') }}" @class(['dark' => ($appearance ?? 'system') == 'dark'])>
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -38,6 +38,11 @@
 
         @viteReactRefresh
         @vite(['resources/css/app.css', 'resources/js/app.tsx', "resources/js/pages/{$page['component']}.tsx"])
+        @if(auth()->check() && request()->is('dashboard', 'mes/*', 'settings/*'))
+            @php($rev031Hash = json_decode(file_get_contents(resource_path('js/lib/rev031-build.json')), true)['hash'])
+            <link id="rev031-style" rel="stylesheet" href="/rev031/assets/app.css?v={{ $rev031Hash }}">
+            <link rel="preload" as="script" href="/rev031/assets/app.js?v={{ $rev031Hash }}">
+        @endif
         <x-inertia::head>
             <title>{{ config('app.name', 'Laravel') }}</title>
         </x-inertia::head>

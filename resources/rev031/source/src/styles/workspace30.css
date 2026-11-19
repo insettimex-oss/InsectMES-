@@ -1,0 +1,81 @@
+
+.r30-cycle-layout { display: grid; grid-template-columns: minmax(245px,.8fr) minmax(0,2.6fr); align-items: start; gap: 18px; }
+.r30-cycle-natural { background: #edf4ee; border: 1px solid #d7e4da; border-radius: 12px; padding: 18px 12px 12px; min-width: 0; }
+.r30-cycle-natural h2 { margin: 0 8px 12px; font-size: 1rem; }
+.r30-cycle-wheel { position: relative; aspect-ratio: 1; width: min(100%,350px); margin-inline: auto; }
+.r30-cycle-track { position: absolute; inset: 0; width: 100%; height: 100%; stroke: #6e927b; stroke-width: 1.6; fill: none; }
+.r30-cycle-species { position: absolute; inset: 37% 31%; display: grid; align-content: center; gap: 4px; text-align: center; color: #294c3a; font-size: .85rem; }
+.r30-cycle-species i { font-size: .76rem; color: #516b5d; }
+.r30-cycle-node { position: absolute; left: var(--x); top: var(--y); transform: translate(-50%,-50%); display: grid; justify-items: center; gap: 3px; min-width: 56px; min-height: 52px; padding: 6px; color: #21533b; background: #fff; border: 1px solid #a9c6b2; border-radius: 9px; font-size: .75rem; font-weight: 650; cursor: pointer; }
+.r30-cycle-node[aria-pressed="true"] { background: #1c5d42; border-color: #1c5d42; color: #fff; }
+.r30-cycle-node svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.45; stroke-linecap: round; stroke-linejoin: round; }
+.r30-cycle-filters { display: flex; align-items: end; gap: 12px; flex-wrap: wrap; }
+.r30-cycle-filters .field { flex: 1 1 150px; }
+.r30-cycle-grid td { vertical-align: top; }
+.r30-cycle-grid td small, .r30-cycle-material { display: block; }
+.r30-cycle-grid td small { color: #52675b; }
+.r30-cycle-material b { display: inline-block; margin-inline-end: .4em; font-size: .82rem; }
+.r30-cycle-material + .r30-cycle-material { margin-top: 4px; }
+.r30-empty-row { text-align: center; color: #52675b; }
+.r30-station-tools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 0 16px; }
+.station32.r30-station { justify-content: flex-start; min-height: 310px; gap: 12px; padding: 26px 18px; }
+.r30-station h2 { margin: 3px 0; }
+.r30-station .duration { margin: 0; }
+.r30-station-flow { display: grid; grid-template-columns: minmax(0,1fr) auto minmax(0,1fr); gap: 8px; align-items: center; width: 100%; text-align: left; }
+.r30-station-flow div { display: grid; gap: 5px; min-width: 0; background: #fff; border: 1px solid #d2e2d7; border-radius: 8px; padding: 11px; overflow-wrap: anywhere; }
+.r30-station-flow small { color: #466454; font-weight: 650; }
+main .table-wrap, #configDialog .table-wrap { max-height: clamp(210px,52dvh,510px); overflow: auto; }
+main .table-wrap thead th, #configDialog .table-wrap thead th { position: sticky; top: 0; z-index: 2; background: #f0f5f1; box-shadow: 0 1px 0 #dce5de; }
+@media (max-width: 1040px) {
+  .r30-cycle-layout { grid-template-columns: minmax(0,1fr); }
+  .r30-cycle-natural { max-width: 370px; width: 100%; }
+}
+@media (max-width: 850px) {
+  .station32.r30-station { min-height: 0; }
+}
+.r30-setup-search { display: flex; align-items: end; gap: 10px; }
+.r30-setup-search .field { flex: 1; }
+.r30-setup-group { margin: 16px 0 24px; }
+.r30-notice { margin: 0 0 12px; padding: 9px 12px; background: #fff6e9; border-radius: 8px; }
+.r30-notice summary { cursor: pointer; font-weight: 700; }
+#view-catalogs tr.ops-overload td { background: #fff1e6; }
+.btn.r30-sub-action {
+  border: 1px solid #39775b;
+  background: #edf7ef;
+  color: #23563e;
+  font-weight: 650;
+}
+.btn.r30-sub-action:hover { background: #dcefe1; }
+.r30-stock-grid { overflow: auto; }
+.r30-stock-grid thead th { position: sticky; top: 0; z-index: 2; background: #f0f5f1; }
+.r30-trace { white-space: nowrap; }
+.r30-home-with-kpis { grid-auto-rows: minmax(138px, 22dvh); }
+.r30-home-with-kpis .menu29-card-icon { width: clamp(54px, 8vmin, 88px); }
+.r30-home-with-kpis .menu29-card { gap: clamp(10px, 1.5vmin, 18px); }
+.r30-home-with-kpis .menu29-card-label { font-size: clamp(14px, 2.3vmin, 24px); }
+.r30-kpis { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,190px),1fr)); gap: 12px; margin: 12px 0; }
+.r30-kpi { background: #fff; border: 1px solid #dce5de; border-radius: 8px; padding: 14px; display: grid; gap: 6px; }
+.r30-kpi strong { font-size: 1.22rem; color: #17593e; }
+.r30-kpi small { color: #567063; }
+.r30-home-charts { grid-template-columns: repeat(auto-fit,minmax(min(100%,260px),1fr)); gap: 16px; margin: 20px 0; }
+.r30-chart-card { --r30-series: #248362; min-width: 0; border-radius: 14px; padding: 18px; gap: 8px; grid-template-rows: auto auto 1fr; }
+.r30-chart-eggs { --r30-series: #ab600e; }
+.r30-chart-heading { display: flex; align-items: baseline; flex-wrap: wrap; column-gap: 12px; row-gap: 4px; justify-content: space-between; }
+.r30-chart-heading h2 { margin: 0; font-size: .96rem; }
+.r30-chart-example { font-size: .72rem; font-weight: 650; color: #52665b; background: #eef3ef; padding: 3px 7px; border-radius: 5px; }
+.r30-chart-card strong { font-size: clamp(1.5rem,2.3vw,2rem); font-variant-numeric: tabular-nums; }
+.r30-chart-card strong span { font-size: .62em; }
+.r30-chart { width: 100%; height: auto; max-height: 146px; align-self: end; fill: var(--r30-series); display: block; overflow: visible; }
+.r30-chart text { font-size: 10px; fill: #54685f; }
+.r30-chart-grid { fill: none; stroke: #dee9e2; }
+.r30-chart-line { stroke: var(--r30-series); stroke-width: 2; }
+.r30-donut-chart { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; align-items: center; min-height: 106px; align-self: center; }
+.r30-donut { width: clamp(78px,8vw,112px); height: auto; fill: none; stroke-width: 13; }
+.r30-donut-base { stroke: #248362; }
+.r30-donut-loss { stroke: #bf642f; }
+.r30-donut-legend { display: grid; gap: 8px; font-size: .77rem; color: #40574b; }
+.r30-donut-legend span { display: grid; grid-template-columns: auto 1fr auto; gap: 6px; align-items: center; }
+.r30-donut-legend i { background: #248362; width: 8px; height: 8px; border-radius: 2px; }
+.r30-donut-legend span + span i { background: #bf642f; }
+.r30-job-picker { align-items: end; }
+

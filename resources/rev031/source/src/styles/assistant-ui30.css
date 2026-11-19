@@ -1,0 +1,28 @@
+.assistant-panel30{background:#fbfcfb}
+.assistant-head30{background:#fff}
+.assistant-head30 .toolbar-icon svg{width:19px;height:19px}
+.assistant-welcome30{padding:16px 0 8px;text-align:center}
+.assistant-welcome-mark30{display:inline-grid;place-items:center;color:#16876c;margin-bottom:12px}
+.assistant-welcome-mark30 svg{width:34px;height:34px;stroke:currentColor;fill:none;stroke-width:1.5}
+.assistant-welcome30 h3{font-size:19px;line-height:1.4;max-width:320px;margin:0 auto 20px;color:#24483b;font-weight:600}
+.assistant-starters30{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:9px;text-align:left}
+.assistant-starters30 button{display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:14px;border:1px solid #dfe8e2;background:#fff;border-radius:10px;color:#27493d;cursor:pointer;text-align:left;box-shadow:0 2px 5px #173d2e06}
+.assistant-starters30 button:hover{background:#f0f7f3;border-color:#a9cbbc}
+.assistant-starters30 svg{width:23px;height:23px;color:#397b64;margin-bottom:4px}
+.assistant-starters30 b{font-size:13px;font-weight:600}
+.assistant-starters30 span{font-size:12px;line-height:1.45;color:#697f73}
+.assistant-form30.assistant-composer30{display:flex;flex-direction:column;align-items:stretch;padding:10px;border:1px solid #d5e1d9;border-radius:15px;background:#fff;gap:6px}
+.assistant-composer30 textarea.input{border:0;background:transparent;box-shadow:none;resize:vertical;min-height:70px;max-height:230px;padding:5px 4px;font-size:14px;line-height:1.5;width:100%;box-sizing:border-box}
+.assistant-composer30 textarea:focus{outline:0}
+.assistant-composer30:focus-within{border-color:#6fa48c;box-shadow:0 0 0 2px #e7f1eb}
+.assistant-compose-actions30{display:flex;align-items:center;justify-content:flex-end;gap:8px}
+.assistant-voice-message30{margin-right:auto;font-size:11px;line-height:1.3;color:#607e6c}
+.assistant-mic30,.assistant-send30{border:0;display:grid;place-items:center;width:36px;height:36px;border-radius:50%;cursor:pointer;flex-shrink:0}
+.assistant-mic30{color:#244f3b;background:transparent}
+.assistant-mic30:hover,.assistant-mic30.is-recording{background:#e4efe8}
+.assistant-send30{background:#164e3c;color:white}
+.assistant-send30:hover{background:#103c2e}
+.assistant-compose-actions30 svg{width:21px;height:21px}
+
+.assistant-wave30{display:flex;align-items:center;justify-content:center;gap:2px;height:28px;flex-shrink:0;width:72px;color:#164e3c}
+.assistant-wave30 i{display:block;width:2px;min-height:3px;border-radius:2px;background:currentColor;transition:height 65ms linear}

@@ -1,35 +1,13 @@
-import { Link, usePage } from '@inertiajs/react';
+import { usePage } from '@inertiajs/react';
 import {
-    Boxes,
     BadgeCheck,
     BookOpenCheck,
-    CalendarClock,
     Cable,
-    ChartNoAxesCombined,
-    ClipboardCheck,
-    ClipboardList,
-    Cog,
-    Factory,
-    GitBranch,
-    LayoutDashboard,
-    MapPin,
-    PackageOpen,
-    Route,
-    Settings2,
     DatabaseBackup,
-    Scale,
     ScrollText,
-    ShieldAlert,
-    Sprout,
-    Thermometer,
-    Truck,
     Users,
-    Utensils,
-    Wrench,
-    Gauge,
 } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
-import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
 import {
     Sidebar,
@@ -37,254 +15,139 @@ import {
     SidebarFooter,
     SidebarHeader,
     SidebarMenu,
-    SidebarMenuButton,
     SidebarMenuItem,
+    SidebarMenuButton,
 } from '@/components/ui/sidebar';
-import type { NavItem } from '@/types';
+import menu from '@/lib/rev031-menu.json';
 
-type AccessNavItem = NavItem & { permission: string };
-
-const groups: Array<{ label: string; items: AccessNavItem[] }> = [
+const bindings: Record<string, string> = {
+    bom: 'bom',
+    'bsf-cycle': 'bsf-cycle',
+    operations: 'operations',
+    parametros: 'parameters',
+    parts: 'parts',
+    'process-routing': 'routing',
+    'work-centers': 'wcs',
+    checklist: 'checklist',
+    oc: 'oc',
+    proveedores: 'proveedores',
+    'recibo-oc': 'receive',
+    'cost-structure': 'coststructure',
+    contenedores: 'containers',
+    inventario: 'inventory',
+    lotes: 'lots',
+    trazabilidad: 'trace',
+    ubicaciones: 'locations',
+    unidades: 'units',
+    'calendario-pm': 'calendario-pm',
+    'checklist-pm': 'checklist-pm',
+    equipos: 'equipos',
+    mrp: 'mrp',
+    prp: 'prp',
+    'job-manager': 'job-manager',
+    'capacity-planning': 'capacity-planning',
+    empresa: 'empresa',
+    etiquetas: 'labels',
+    settings: 'settings',
+    'setup-tables': 'setup',
+    'control-panel': 'control',
+    bioconversion: 'rearing',
+    reproduccion: 'reproduction',
+    postproceso: 'postprocess',
+    empaque: 'pack',
+    reportes: 'reports',
+    envios: 'shipping',
+    pedidos: 'pedidos',
+};
+type MenuNode = { id: string; name: string; items?: MenuNode[] };
+const native = [
     {
-        label: 'Inicio',
-        items: [
-            {
-                title: 'Resumen',
-                href: '/dashboard',
-                icon: LayoutDashboard,
-                permission: 'dashboard.read',
-            },
-        ],
+        title: 'Fase 0',
+        path: 'governance',
+        permission: 'governance.read',
+        icon: BookOpenCheck,
     },
     {
-        label: 'Planificar',
-        items: [
-            {
-                title: 'Órdenes',
-                href: '/mes/orders',
-                icon: CalendarClock,
-                permission: 'planning.read',
-            },
-        ],
+        title: 'Validación y firmas',
+        path: 'validation',
+        permission: 'validation.read',
+        icon: BadgeCheck,
     },
     {
-        label: 'Ejecutar',
-        items: [
-            {
-                title: 'Piso de producción',
-                href: '/mes/control',
-                icon: Factory,
-                permission: 'production.read',
-            },
-            {
-                title: 'Guardería',
-                href: '/mes/nursery',
-                icon: Sprout,
-                permission: 'production.read',
-            },
-            {
-                title: 'Alimentación',
-                href: '/mes/feeding',
-                icon: Utensils,
-                permission: 'production.read',
-            },
-        ],
+        title: 'Integraciones',
+        path: 'integrations',
+        permission: 'integrations.read',
+        icon: Cable,
     },
     {
-        label: 'Controlar',
-        items: [
-            {
-                title: 'Calidad',
-                href: '/mes/quality',
-                icon: ClipboardCheck,
-                permission: 'quality.read',
-            },
-            {
-                title: 'OEE y paros',
-                href: '/mes/performance',
-                icon: Gauge,
-                permission: 'performance.read',
-            },
-            {
-                title: 'Ambiente',
-                href: '/mes/environment',
-                icon: Thermometer,
-                permission: 'environment.read',
-            },
-            {
-                title: 'Balance de masa',
-                href: '/mes/mass-balance',
-                icon: Scale,
-                permission: 'production.read',
-            },
-            {
-                title: 'Bioseguridad',
-                href: '/mes/biosecurity',
-                icon: ShieldAlert,
-                permission: 'biosecurity.read',
-            },
-        ],
+        title: 'Auditoría',
+        path: 'audit',
+        permission: 'audit.read',
+        icon: ScrollText,
     },
     {
-        label: 'Materiales',
-        items: [
-            {
-                title: 'Contenedores',
-                href: '/mes/inventory',
-                icon: PackageOpen,
-                permission: 'inventory.read',
-            },
-            {
-                title: 'Trazabilidad',
-                href: '/mes/trace',
-                icon: ClipboardList,
-                permission: 'traceability.read',
-            },
-            {
-                title: 'Logística y embarques',
-                href: '/mes/logistics',
-                icon: Truck,
-                permission: 'logistics.read',
-            },
-        ],
-    },
-    {
-        label: 'Ingeniería',
-        items: [
-            {
-                title: 'Rutas de proceso',
-                href: '/mes/routing',
-                icon: Route,
-                permission: 'engineering.read',
-            },
-            {
-                title: 'BOM',
-                href: '/mes/bom',
-                icon: GitBranch,
-                permission: 'engineering.read',
-            },
-            {
-                title: 'Artículos',
-                href: '/mes/parts',
-                icon: Boxes,
-                permission: 'engineering.read',
-            },
-            {
-                title: 'Ubicaciones',
-                href: '/mes/locations',
-                icon: MapPin,
-                permission: 'engineering.read',
-            },
-            {
-                title: 'Operaciones',
-                href: '/mes/operations',
-                icon: Cog,
-                permission: 'engineering.read',
-            },
-            {
-                title: 'Mantenimiento',
-                href: '/mes/maintenance',
-                icon: Wrench,
-                permission: 'maintenance.read',
-            },
-        ],
-    },
-    {
-        label: 'Gobernar',
-        items: [
-            {
-                title: 'Fase 0',
-                href: '/mes/governance',
-                icon: BookOpenCheck,
-                permission: 'governance.read',
-            },
-            {
-                title: 'Validación y firmas',
-                href: '/mes/validation',
-                icon: BadgeCheck,
-                permission: 'validation.read',
-            },
-            {
-                title: 'Integraciones',
-                href: '/mes/integrations',
-                icon: Cable,
-                permission: 'integrations.read',
-            },
-            {
-                title: 'Auditoría',
-                href: '/mes/audit',
-                icon: ScrollText,
-                permission: 'audit.read',
-            },
-            {
-                title: 'Continuidad',
-                href: '/mes/continuity',
-                icon: DatabaseBackup,
-                permission: 'continuity.read',
-            },
-        ],
-    },
-    {
-        label: 'Administración',
-        items: [
-            {
-                title: 'Parámetros',
-                href: '/mes/parameters',
-                icon: Settings2,
-                permission: 'administration.read',
-            },
-            {
-                title: 'Costos',
-                href: '/mes/costs',
-                icon: ChartNoAxesCombined,
-                permission: 'costs.read',
-            },
-            {
-                title: 'Usuarios y accesos',
-                href: '/mes/users',
-                icon: Users,
-                permission: 'users.manage',
-            },
-        ],
+        title: 'Continuidad',
+        path: 'continuity',
+        permission: 'continuity.read',
+        icon: DatabaseBackup,
     },
 ];
-
-export function AppSidebar() {
-    const permissions = usePage().props.auth.user?.permissions ?? [];
-    const visibleGroups = groups
-        .map((group) => ({
-            ...group,
-            items: group.items.filter((item) =>
-                permissions.includes(item.permission),
-            ),
-        }))
-        .filter((group) => group.items.length > 0);
-
+function MenuEntry({ node }: { node: MenuNode }) {
+    if (['gobierno', 'seguridad'].includes(node.id)) return null;
+    if (node.items?.length)
+        return (
+            <details className="rev031-native-menu">
+                <summary>{node.name}</summary>
+                <div>
+                    {node.items.map((child) => (
+                        <MenuEntry key={child.id} node={child} />
+                    ))}
+                </div>
+            </details>
+        );
     return (
-        <Sidebar collapsible="icon" variant="inset" className="insect-sidebar">
-            <SidebarHeader className="px-3 py-4">
+        <a href={`/dashboard#/${bindings[node.id] ?? 'home'}`}>{node.name}</a>
+    );
+}
+export function AppSidebar() {
+    const { auth } = usePage().props;
+    const permitted = (permission: string) =>
+        auth.user.permissions.includes(permission);
+    return (
+        <Sidebar collapsible="icon" variant="inset">
+            <SidebarHeader>
                 <SidebarMenu>
                     <SidebarMenuItem>
-                        <SidebarMenuButton
-                            size="lg"
-                            className="h-20 group-data-[collapsible=icon]:h-8!"
-                            asChild
-                        >
-                            <Link href="/dashboard" prefetch>
+                        <SidebarMenuButton size="lg" asChild>
+                            <a href="/dashboard">
                                 <AppLogo />
-                            </Link>
+                            </a>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                 </SidebarMenu>
             </SidebarHeader>
             <SidebarContent>
-                {visibleGroups.map((group) => (
-                    <NavMain
-                        key={group.label}
-                        label={group.label}
-                        items={group.items}
-                    />
-                ))}
+                <nav className="rev031-native-navigation">
+                    <a href="/dashboard#/home">Inicio</a>
+                    {menu.map((node) => (
+                        <MenuEntry key={node.id} node={node} />
+                    ))}
+                    <p className="rev031-native-caption">GOBERNAR</p>
+                    {native
+                        .filter((item) => permitted(item.permission))
+                        .map(({ title, path, icon: Icon }) => (
+                            <a key={path} href={`/mes/${path}`}>
+                                <Icon size={18} />
+                                {title}
+                            </a>
+                        ))}
+                    {permitted('users.manage') && (
+                        <a href="/mes/users">
+                            <Users size={18} />
+                            Usuarios y accesos
+                        </a>
+                    )}
+                </nav>
             </SidebarContent>
             <SidebarFooter>
                 <NavUser />

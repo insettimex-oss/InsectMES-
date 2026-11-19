@@ -47,6 +47,7 @@ class MesAuthorization
         if ($permission === null) {
             abort(404);
         }
+        abort_unless(app(RoleScreenAccess::class)->allows($user, $section), 403);
         abort_unless($user->hasPermission($permission), 403, 'Su rol no tiene acceso a este módulo.');
     }
 }

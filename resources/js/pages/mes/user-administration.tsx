@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useForm } from '@inertiajs/react';
 import { KeyRound, Pencil, ShieldCheck, UserPlus, Users } from 'lucide-react';
 import { MesRecordDialog } from '@/components/mes-record-dialog';
@@ -47,7 +47,8 @@ type FormData = {
     must_change_password: boolean;
 };
 
-const moduleNames: Record<string, string> = {
+export const moduleNames: Record<string, string> = {
+    requisitions: 'Requisiciones',
     dashboard: 'Resumen',
     planning: 'Planeación',
     production: 'Producción',
@@ -70,7 +71,7 @@ const moduleNames: Record<string, string> = {
     users: 'Usuarios',
 };
 
-const actionNames: Record<string, string> = {
+export const actionNames: Record<string, string> = {
     read: 'Lectura',
     write: 'Escritura',
     approve: 'Aprobación',
@@ -81,7 +82,6 @@ const actionNames: Record<string, string> = {
 export function UserAdministration({
     users,
     roles,
-    permissions,
 }: {
     users: UserAccount[];
     roles: AccessRole[];
@@ -102,17 +102,6 @@ export function UserAdministration({
         is_active: true,
         must_change_password: true,
     });
-    const groupedPermissions = useMemo(
-        () =>
-            permissions.reduce<Record<string, AccessPermission[]>>(
-                (groups, permission) => {
-                    (groups[permission.module] ??= []).push(permission);
-                    return groups;
-                },
-                {},
-            ),
-        [permissions],
-    );
     const selectedRole = roles.find(
         (role) => role.id === Number(form.data.role_id),
     );
@@ -160,19 +149,9 @@ export function UserAdministration({
         }));
     }
 
-    function togglePermission(key: string) {
-        form.setData(
-            'permissions',
-            form.data.permissions.includes(key)
-                ? form.data.permissions.filter(
-                      (permission) => permission !== key,
-                  )
-                : [...form.data.permissions, key],
-        );
-    }
-
     function submit(event: React.FormEvent) {
         event.preventDefault();
+        form.transform(({ permissions: _permissions, ...data }) => data);
         const options = {
             preserveScroll: true,
             onSuccess: () => {
@@ -192,11 +171,10 @@ export function UserAdministration({
             <section className="access-summary">
                 <div>
                     <span className="eyebrow">CONTROL DE ACCESO</span>
-                    <h2>Roles claros, permisos precisos</h2>
+                    <h2>Usuarios</h2>
                     <p>
-                        El rol define el acceso inicial. Los permisos
-                        individuales permiten adaptar una cuenta sin alterar al
-                        resto del área.
+                        Administre cada cuenta y asígnele un rol. Los permisos
+                        se configuran en Roles.
                     </p>
                 </div>
                 <div className="access-summary-metrics">
@@ -207,7 +185,15 @@ export function UserAdministration({
                         <ShieldCheck /> <b>{roles.length}</b> roles
                     </span>
                     <span>
-                        <KeyRound /> <b>{permissions.length}</b> permisos
+                        <KeyRound />{' '}
+                        <b>
+                            {roles.reduce(
+                                (n, role) =>
+                                    Math.max(n, role.permissions.length),
+                                0,
+                            )}
+                        </b>{' '}
+                        permisos
                     </span>
                 </div>
                 <button
@@ -298,7 +284,7 @@ export function UserAdministration({
                         ? `Editar acceso · ${editing.name}`
                         : 'Crear usuario'
                 }
-                description="Asigne un rol base y ajuste únicamente las excepciones necesarias."
+                description="Administre los datos de la cuenta y su rol."
             >
                 <form className="access-form" onSubmit={submit}>
                     <div className="form-grid three">
@@ -389,63 +375,10 @@ export function UserAdministration({
                             {Object.values(form.errors).join(' ')}
                         </div>
                     )}
-                    <div className="permission-heading">
-                        <div>
-                            <p className="eyebrow">PERMISOS EFECTIVOS</p>
-                            <h3>
-                                {selectedRole?.name ?? 'Rol sin seleccionar'}
-                            </h3>
-                            <p>{selectedRole?.description}</p>
-                        </div>
-                        <button
-                            type="button"
-                            className="secondary-action"
-                            onClick={() =>
-                                form.setData(
-                                    'permissions',
-                                    selectedRole?.permissions ?? [],
-                                )
-                            }
-                        >
-                            Restablecer al rol
-                        </button>
-                    </div>
-                    <div className="permission-matrix">
-                        {Object.entries(groupedPermissions).map(
-                            ([module, modulePermissions]) => (
-                                <fieldset key={module}>
-                                    <legend>
-                                        {moduleNames[module] ?? module}
-                                    </legend>
-                                    <div>
-                                        {modulePermissions.map((permission) => (
-                                            <label
-                                                key={permission.key}
-                                                title={permission.description}
-                                            >
-                                                <input
-                                                    type="checkbox"
-                                                    checked={form.data.permissions.includes(
-                                                        permission.key,
-                                                    )}
-                                                    onChange={() =>
-                                                        togglePermission(
-                                                            permission.key,
-                                                        )
-                                                    }
-                                                />
-                                                <span>
-                                                    {actionNames[
-                                                        permission.action
-                                                    ] ?? permission.action}
-                                                </span>
-                                            </label>
-                                        ))}
-                                    </div>
-                                </fieldset>
-                            ),
-                        )}
-                    </div>
+                    <p>
+                        Los permisos de {selectedRole?.name ?? 'este rol'} se
+                        configuran en Roles.
+                    </p>
                     <div className="access-form-options">
                         {editing && (
                             <label>

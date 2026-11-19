@@ -1,0 +1,22 @@
+.filter-calendar31 {position:fixed;z-index:10030;background:white;color:#244d3b;border:1px solid #bfd2c5;border-radius:8px;box-shadow:0 6px 22px #183f2930;max-height:calc(100vh - 20px);overflow:auto;padding:12px;font-size:12px;box-sizing:border-box}
+.filter-calendar31 header {display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.filter-calendar31 header select {flex:1;height:32px;padding:4px 8px;font-size:12px}
+.filter-calendar31 header > button {border:0;background:transparent;color:#4c6c5c;font-size:21px;cursor:pointer}
+.filter-calendar-inputs31 {display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.filter-calendar-inputs31 label {display:grid;gap:4px;min-width:0;font-size:11px}
+.filter-calendar-inputs31 input {border:1px solid #d1dfd5;border-radius:5px;padding:5px;width:100%;box-sizing:border-box;height:30px;color:#244d3b;background:white}
+.filter-calendar-navigation31 {display:flex;justify-content:space-between;height:24px;margin-top:3px}
+.filter-calendar-navigation31 button {border:0;background:transparent;font-size:24px;color:#246342;cursor:pointer;line-height:20px;padding:0 6px}
+.filter-calendar-months31 {display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.filter-month31 > strong {display:block;text-align:center;text-transform:capitalize;margin:0 0 8px;font-size:12px}
+.filter-week31,.filter-days31 {display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:2px;text-align:center}
+.filter-week31 span {font-size:10px;padding:3px 0;color:#65806e}
+.filter-days31 button {height:25px;min-width:0;padding:0;border:0;border-radius:4px;background:white;color:#284c3b;font-size:11px;cursor:pointer}
+.filter-days31 button:hover,.filter-days31 button:focus-visible {background:#e1eee4;outline:1px solid #3f8b62}
+.filter-days31 button[aria-current=date] {box-shadow:inset 0 0 0 1px #88ad95}
+.filter-days31 button.range-edge31 {background:#19533e;color:white}
+.filter-days31 button.range-between31 {background:#e3f0e7}
+.filter-calendar31 footer {display:flex;gap:10px;align-items:center;justify-content:flex-end;margin-top:10px;border-top:1px solid #e0e9e2;padding-top:8px}
+.filter-calendar31 footer span {color:#a24a20;font-size:11px;margin-right:auto}
+.filter-calendar31 footer .btn {min-height:30px;padding:5px 14px;font-size:12px}
+@media(max-width:430px){.filter-calendar-months31{gap:8px}.filter-calendar31{padding:8px}.filter-days31 button{height:24px}}

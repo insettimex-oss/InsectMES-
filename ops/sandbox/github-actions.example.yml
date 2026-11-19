@@ -1,0 +1,31 @@
+# Plantilla inactiva: no está en .github/workflows y no ejecuta tareas.
+# Ricardo debe validar runner, entorno, ruta instalada y rama antes de activarla.
+name: Actualizar Sandbox
+on:
+  workflow_dispatch:
+  # Futuro horario: 00:00 Ciudad de México (06:00 UTC).
+  # schedule:
+  #   - cron: '0 6 * * *'
+permissions: {}
+concurrency:
+  group: insectmes-sandbox-refresh
+  cancel-in-progress: false
+jobs:
+  refresh:
+    if: github.ref_name == 'V1'
+    runs-on: [self-hosted, Windows, insectmes-sandbox]
+    environment: sandbox
+    steps:
+      - name: Copiar datos del principal al Sandbox instalado
+        shell: pwsh
+        env:
+          MES_DEPLOY_PATH: ${{ vars.MES_DEPLOY_PATH }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if (-not $env:MES_DEPLOY_PATH) { throw 'Ricardo debe configurar MES_DEPLOY_PATH.' }
+          $sandboxProject = [IO.Path]::GetFullPath($env:MES_DEPLOY_PATH)
+          $sandboxPhp = Join-Path $sandboxProject '.local/php/php.exe'
+          $sandboxRefresh = Join-Path $sandboxProject 'scripts/refresh-sandbox.php'
+          if (-not (Test-Path -LiteralPath $sandboxPhp) -or -not (Test-Path -LiteralPath $sandboxRefresh)) { throw 'La instalación no está preparada.' }
+          & $sandboxPhp $sandboxRefresh
+          if ($LASTEXITCODE -ne 0) { throw 'El refresco no terminó correctamente.' }

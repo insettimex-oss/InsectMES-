@@ -1,5 +1,15 @@
 import { Link, router } from '@inertiajs/react';
-import { LogOut, Settings } from 'lucide-react';
+import { useState } from 'react';
+import {
+    LogOut,
+    UserRoundPen,
+    Building2,
+    ContactRound,
+    ShieldEllipsis,
+    Globe,
+    Check,
+    ChevronDown,
+} from 'lucide-react';
 import {
     DropdownMenuGroup,
     DropdownMenuItem,
@@ -18,10 +28,17 @@ type Props = {
 
 export function UserMenuContent({ user }: Props) {
     const cleanup = useMobileNavigation();
+    const [languagesOpen, setLanguagesOpen] = useState(false);
 
     const handleLogout = () => {
         cleanup();
         router.flushAll();
+    };
+    const openPlatform = (screen: string) => {
+        cleanup();
+        window.dispatchEvent(
+            new CustomEvent('insectmes:navigate', { detail: screen }),
+        );
     };
 
     return (
@@ -40,11 +57,70 @@ export function UserMenuContent({ user }: Props) {
                         prefetch
                         onClick={cleanup}
                     >
-                        <Settings className="mr-2" />
-                        Settings
+                        <UserRoundPen
+                            className="mr-2 size-4 shrink-0"
+                            style={{ width: 16, height: 16 }}
+                        />
+                        Perfil
                     </Link>
                 </DropdownMenuItem>
             </DropdownMenuGroup>
+            {(user.permissions.includes('administration.read') ||
+                user.permissions.includes('administration.write')) && (
+                <DropdownMenuItem onSelect={() => openPlatform('empresa')}>
+                    <Building2
+                        className="mr-2 size-4 shrink-0"
+                        style={{ width: 16, height: 16 }}
+                    />
+                    Empresa
+                </DropdownMenuItem>
+            )}
+            {user.permissions.includes('users.manage') && (
+                <>
+                    <DropdownMenuItem onSelect={() => openPlatform('users')}>
+                        <ContactRound
+                            className="mr-2 size-4 shrink-0"
+                            style={{ width: 16, height: 16 }}
+                        />
+                        Usuarios
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => openPlatform('profiles')}>
+                        <ShieldEllipsis
+                            className="mr-2 size-4 shrink-0"
+                            style={{ width: 16, height: 16 }}
+                        />
+                        Roles
+                    </DropdownMenuItem>
+                </>
+            )}
+            <DropdownMenuItem
+                onSelect={(event) => {
+                    event.preventDefault();
+                    setLanguagesOpen(!languagesOpen);
+                }}
+                aria-expanded={languagesOpen}
+            >
+                <Globe className="size-4 shrink-0" />
+                Idioma
+                <ChevronDown className="ml-auto size-3.5" />
+            </DropdownMenuItem>
+            {languagesOpen && (
+                <DropdownMenuGroup
+                    aria-label="Idiomas disponibles"
+                    className="header-languages37"
+                >
+                    <DropdownMenuItem
+                        onSelect={(event) => event.preventDefault()}
+                    >
+                        Español <Check className="ml-auto size-4" />
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                        onSelect={(event) => event.preventDefault()}
+                    >
+                        English
+                    </DropdownMenuItem>
+                </DropdownMenuGroup>
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
                 <Link
@@ -54,7 +130,10 @@ export function UserMenuContent({ user }: Props) {
                     onClick={handleLogout}
                     data-test="logout-button"
                 >
-                    <LogOut className="mr-2" />
+                    <LogOut
+                        className="mr-2 size-4 shrink-0"
+                        style={{ width: 16, height: 16 }}
+                    />
                     Log out
                 </Link>
             </DropdownMenuItem>

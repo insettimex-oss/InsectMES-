@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\ProductionOrder;
 use App\Models\User;
+use App\Services\MesDataService;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -13,19 +14,18 @@ class AdvancedPlanningWorkflowTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_orders_page_exposes_the_advanced_planning_workspace(): void
+    public function test_orders_redirect_to_rev031_and_native_planning_data_remains_available(): void
     {
         $this->planner();
 
-        $this->get('/mes/orders')->assertOk()->assertInertia(fn ($page) => $page
-            ->component('mes/section')
-            ->where('section', 'orders')
-            ->has('data.planningCampaigns', 2)
-            ->has('data.biologicalRules', 5)
-            ->has('data.materialSupplyEvents', 1)
-            ->has('data.workCenterOptions', 2)
-            ->has('data.planningOperations')
-            ->has('data.workCenters'));
+        $this->get('/mes/orders')->assertRedirect('/dashboard#/job-manager');
+        $data = app(MesDataService::class)->section('orders');
+        $this->assertCount(2, $data['planningCampaigns']);
+        $this->assertCount(5, $data['biologicalRules']);
+        $this->assertCount(1, $data['materialSupplyEvents']);
+        $this->assertCount(2, $data['workCenterOptions']);
+        $this->assertNotEmpty($data['planningOperations']);
+        $this->assertNotEmpty($data['workCenters']);
     }
 
     public function test_approved_alternate_center_is_selected_and_used_on_the_shop_floor(): void

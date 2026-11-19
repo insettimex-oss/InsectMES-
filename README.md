@@ -44,21 +44,40 @@ Reconstrucción del prototipo InsectMES como aplicación persistente
 - Usuarios y seguridad proporcionados por el starter kit oficial.
 - Sidebar integrado, responsive y colapsable con `Ctrl/Cmd + B`.
 
-## Instalación
+## Instalación local en Windows
+
+Instala Git, Composer 2, PHP 8.4.1 o posterior, Node.js 24 y pnpm. Agrega `php.exe` al `PATH` y habilita `pdo_sqlite` y `sqlite3` en `php.ini`. Aunque `composer.json` menciona PHP 8.3, las dependencias fijadas en `composer.lock` requieren al menos PHP 8.4.1.
+
+Desde PowerShell, clona la rama de trabajo en una carpeta nueva:
 
 ```powershell
-Set-Location -LiteralPath 'C:\Users\inset\Documentos\InsectMES-Laravel'
+git clone --single-branch --branch v1-alejandro https://github.com/insettimex-oss/InsectMES-.git InsectMES-v1-alejandro
+Set-Location InsectMES-v1-alejandro
 composer install
-pnpm install
 Copy-Item .env.example .env
-php artisan key:generate
-New-Item database\database.sqlite -ItemType File -Force
-php artisan migrate:fresh --seed
-pnpm build
-composer run dev
+New-Item database/database.sqlite -ItemType File
 ```
 
-Después abre `http://localhost:8000`.
+En `.env`, deja `APP_ENV=local` y `DB_CONNECTION=sqlite`. Configura `APP_URL=http://127.0.0.1:8013`. Los comandos siguientes preparan una base nueva con datos de prueba y crean la copia inicial de Sandbox:
+
+```powershell
+php artisan key:generate
+php artisan migrate --seed
+pnpm install --frozen-lockfile
+pnpm run build
+php scripts/refresh-sandbox.php
+```
+
+Arranca Sandbox y deja Laravel ejecutándose en la terminal:
+
+```powershell
+& ./scripts/start-sandbox.ps1
+php artisan serve --host=127.0.0.1 --port=8013 --no-reload
+```
+
+Abre [InsectMES](http://127.0.0.1:8013/), inicia sesión y selecciona **Configuración → Sandbox**. La pestaña de Sandbox se abre en `http://localhost:8015` con la sesión de la cuenta de prueba. El arranque usa `php.exe` del `PATH` o, si no lo encuentra, el de `.local/php/php.exe` cuando existe.
+
+La copia de Sandbox usa una base SQLite independiente en `.local/sandbox`. Para actualizarla, `php scripts/refresh-sandbox.php` conserva un respaldo de la copia anterior y repone sus datos desde la base local principal. Ejecuta ese comando cuando quieras reemplazar los datos de prueba de Sandbox.
 
 Usuario inicial de desarrollo:
 

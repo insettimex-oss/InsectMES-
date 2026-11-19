@@ -33,9 +33,15 @@ class MesController extends Controller
         return Inertia::render('dashboard', $this->data->dashboard());
     }
 
-    public function section(string $section): Response
+    public function section(string $section): Response|RedirectResponse
     {
         $this->authorization->authorizeSection(request()->user(), $section);
+
+        if (! in_array($section, ['governance', 'validation', 'integrations', 'audit', 'continuity', 'users'], true)) {
+            $screens = ['orders' => 'job-manager', 'control' => 'control', 'nursery' => 'nursery', 'feeding' => 'rearing', 'inventory' => 'inventory', 'logistics' => 'shipping', 'trace' => 'trace', 'quality' => 'checklist', 'maintenance' => 'equipos', 'parameters' => 'parameters', 'costs' => 'coststructure', 'operations' => 'operations', 'routing' => 'routing', 'bom' => 'bom', 'parts' => 'parts', 'locations' => 'locations'];
+
+            return redirect('/dashboard#/'.($screens[$section] ?? 'home'));
+        }
 
         return Inertia::render('mes/section', ['section' => $section, 'data' => $this->data->section($section)]);
     }

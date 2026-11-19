@@ -1,0 +1,57 @@
+/* Work surfaces use the available width, alongside either navigation mode. */
+#app .main,#app.sidebar-hidden .main,#app.cp-full30 .main{padding:12px 12px 28px;max-width:none;min-width:0}
+#app .main>.view{max-width:none;width:100%;margin-left:0;margin-right:0}
+.stock-group-controls30{display:flex;align-items:center;gap:10px;font-size:13px;grid-column:auto}
+.stock-group-controls30 .select{width:165px;min-height:34px;padding:6px 10px}
+.setup-screen30>.actionbar{margin:0 0 16px;display:flex;gap:10px}
+.setup-screen30 .table-wrap{max-height:calc(100vh - 260px);overflow:auto}
+.setup-screen30 table{width:100%;table-layout:auto}
+.setup-screen30 th{white-space:normal;min-width:105px;padding:12px;text-align:center}
+.setup-screen30 th:nth-child(2),.setup-screen30 th:nth-child(3){text-align:left}
+.setup-screen30 td{padding:10px 12px;vertical-align:middle;border-right:1px solid #e3ebe5}
+.setup-screen30 td:first-child,.setup-screen30 .setup-boolean30{text-align:center}
+.setup-screen30 input[type=checkbox]{width:18px;height:18px;accent-color:#20755c;cursor:pointer}
+.setup-screen30 .input{padding:8px 10px;min-height:36px;background:#fff}
+.setup-screen30 td:nth-child(2){min-width:130px}
+.setup-screen30 td:nth-child(3){min-width:230px}
+.setup-screen30 input[readonly]{background:#f1f5f2;color:#365d49;border-color:transparent}
+.setup-screen30 .setup-color30{display:flex;align-items:center;gap:8px;min-width:150px}
+.setup-screen30 .setup-color30 input[type=color]{width:36px;height:36px;padding:3px;border:1px solid #c9d8cd;border-radius:6px}
+.setup-screen30 .setup-color30 .input{width:95px}
+.setup-screen30 tbody tr:nth-child(even){background:#f8faf8}
+@media(max-width:650px){#app .main,#app.sidebar-hidden .main,#app.cp-full30 .main{padding:8px 8px 20px}}
+
+/* Actions share one brand color; navigation links retain their outlined treatment. */
+.actionbar .btn:not(.danger):not(.r30-sub-action),.capture-actions .btn:not(.danger):not(.r30-sub-action){background:#164e3c;color:#fff;border-color:#164e3c}
+.actionbar .btn:not(.danger):not(.r30-sub-action):hover,.capture-actions .btn:not(.danger):not(.r30-sub-action):hover{background:#103f30;border-color:#103f30}
+.actionbar .btn:disabled,.capture-actions .btn:disabled{opacity:.4;cursor:not-allowed}
+
+#view-inventory .r30-stock-grid thead th{background:#e7edef;color:#344e5c;border-bottom:2px solid #b9c9d1}
+#view-inventory .grid-head34{color:#344e5c}
+#view-inventory tr.data-row.selected>td,#view-inventory tr.grid-marked30>td{background:#e2effb}
+#view-inventory tr.data-row.selected>td:first-child,#view-inventory tr.grid-marked30>td:first-child{box-shadow:inset 4px 0 #2871a9}
+#view-inventory [data-inventory-group30="total"]>td{background:#fff;border-top:2px solid #a7bdb0;border-bottom:1px solid #d8e3dd;padding:9px 10px;font-weight:650;color:#214f3a}
+#view-inventory [data-inventory-group30="total"] small{display:block;font-size:11px;font-weight:400;white-space:nowrap;margin-top:2px}
+#view-inventory .stock-quantity30{text-align:right;font-variant-numeric:tabular-nums}
+
+#view-inventory .stock-merged-cell30{vertical-align:top;background:#fff!important;border-right:1px solid #d9e3df;padding-top:14px}
+#view-inventory [data-inventory-column30="11"]{text-align:center}
+#view-inventory .stock-merged-cell30[rowspan]:not([rowspan="1"]){border-bottom:1px solid #cad8d1}
+
+.inventory-active30{display:flex;align-items:center;gap:7px;font-size:13px;white-space:nowrap}
+.inventory-active30 input{accent-color:#164e3c;width:16px;height:16px}
+.setup-screen30 td:nth-child(2){min-width:60px;text-align:center}
+.setup-screen30 td:nth-child(3){min-width:140px}
+
+.setup-screen30 .setup-select-column30{width:36px;min-width:36px;max-width:36px;padding:6px;text-align:center;box-sizing:border-box}
+
+.inventory-active30{align-self:center;justify-content:center;margin:0 0 0 6px;line-height:1;min-height:34px}
+.inventory-active30 input{margin:0;flex-shrink:0;vertical-align:middle}
+.setup-sort30{border:0;background:transparent;color:inherit;font:inherit;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:0;cursor:pointer}
+.setup-sort30:hover{color:#164e3c}
+.setup-sort30 span{font-size:12px;color:#698476}
+.setup-screen30 td:nth-child(2){min-width:150px;text-align:left}
+.setup-screen30 td:nth-child(3){min-width:150px}
+
+.inventory-search30>.inventory-active30{display:flex;align-items:center;justify-content:center;align-self:flex-start;height:36px;min-height:36px;padding:0;margin:0;line-height:normal;gap:8px}
+.inventory-search30>.inventory-active30 input{display:block;margin:0;position:static;transform:none;width:16px;height:16px}

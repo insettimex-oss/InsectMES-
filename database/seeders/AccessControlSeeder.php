@@ -142,6 +142,7 @@ class AccessControlSeeder extends Seeder
                 ],
             );
         }
+        $this->call(RequisitionAccessSeeder::class);
     }
 
     private function permissionDescription(string $moduleName, string $action): string

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\MesAdvancedController;
+use App\Http\Controllers\EnvironmentController;
 use App\Http\Controllers\MesController;
 use App\Http\Controllers\MesCostController;
 use App\Http\Controllers\MesIndustrialController;
@@ -11,13 +12,28 @@ use App\Http\Controllers\MesPhaseOneController;
 use App\Http\Controllers\MesPlanningController;
 use App\Http\Controllers\MesShopFloorController;
 use App\Http\Controllers\MesValidationController;
+use App\Http\Controllers\Rev031DictationController;
+use App\Http\Controllers\Rev031WorkspaceController;
+use App\Http\Controllers\RoleAdministrationController;
 use App\Http\Controllers\UserAdministrationController;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/dashboard')->name('home');
+Route::get('mes/environment/begin', [EnvironmentController::class, 'begin'])->middleware('throttle:20,1,environment-switch');
+Route::get('mes/environment/accept', [EnvironmentController::class, 'accept'])->middleware('throttle:20,1,environment-switch');
 
 Route::middleware(['auth', 'verified', 'password.changed'])->group(function () {
-    Route::get('dashboard', [MesController::class, 'dashboard'])->middleware('permission:dashboard.read')->name('dashboard');
+    Route::get('mes/environment/authorize', [EnvironmentController::class, 'authorize'])->middleware('throttle:20,1,environment-switch');
+    Route::post('mes/environment/refresh', [EnvironmentController::class, 'refresh'])->middleware('throttle:3,1,sandbox-refresh');
+    Route::get('dashboard', [Rev031WorkspaceController::class, 'page'])->middleware('permission:dashboard.read')->name('dashboard');
+    Route::redirect('mes/rev031', '/dashboard')->name('mes.rev031');
+    Route::get('mes/rev031/bootstrap', [Rev031WorkspaceController::class, 'bootstrap'])->name('mes.rev031.bootstrap');
+    Route::post('mes/rev031/state', [Rev031WorkspaceController::class, 'persist'])->name('mes.rev031.state');
+    Route::get('api/dictation/health', [Rev031DictationController::class, 'health'])->middleware('permission:dashboard.read');
+    Route::post('api/dictation/transcribe', [Rev031DictationController::class, 'transcribe'])->middleware(['permission:dashboard.read', 'throttle:10,1']);
+    Route::get('mes/roles', [RoleAdministrationController::class, 'index'])->middleware('permission:users.manage')->name('mes.roles.index');
+    Route::post('mes/roles', [RoleAdministrationController::class, 'store'])->middleware('permission:users.manage')->name('mes.roles.store');
+    Route::patch('mes/roles/{role}', [RoleAdministrationController::class, 'update'])->middleware('permission:users.manage')->name('mes.roles.update');
     Route::get('mes/{section}', [MesController::class, 'section'])->name('mes.section');
     Route::post('mes/inventory/receive', [MesController::class, 'receive'])->middleware('permission:inventory.write')->name('mes.inventory.receive');
     Route::patch('mes/inventory/{container}/move', [MesController::class, 'moveContainer'])->middleware('permission:inventory.write')->name('mes.inventory.move');

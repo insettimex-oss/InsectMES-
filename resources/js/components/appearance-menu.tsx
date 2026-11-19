@@ -1,4 +1,5 @@
 import { Check, Monitor, Moon, Sun } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -17,6 +18,15 @@ const options = [
 ];
 
 export function AppearanceMenu() {
+    const [open, setOpen] = useState(false);
+    const [offset, setOffset] = useState(6);
+    useEffect(() => {
+        const close = (event: Event) => {
+            if ((event as CustomEvent).detail !== 'appearance') setOpen(false);
+        };
+        window.addEventListener('insectmes:header-menu', close);
+        return () => window.removeEventListener('insectmes:header-menu', close);
+    }, []);
     const { appearance, resolvedAppearance, updateAppearance } =
         useAppearance();
     const ActiveIcon = resolvedAppearance === 'dark' ? Moon : Sun;
@@ -26,7 +36,31 @@ export function AppearanceMenu() {
     };
 
     return (
-        <DropdownMenu>
+        <DropdownMenu
+            modal={false}
+            open={open}
+            onOpenChange={(value) => {
+                if (value) {
+                    const bar = document
+                        .querySelector('.menu29-bar')
+                        ?.getBoundingClientRect();
+                    const trigger = document
+                        .querySelector('#laravel-appearance-control button')
+                        ?.getBoundingClientRect();
+                    setOffset(
+                        bar && trigger
+                            ? Math.max(6, bar.bottom - trigger.bottom + 6)
+                            : 6,
+                    );
+                    window.dispatchEvent(
+                        new CustomEvent('insectmes:header-menu', {
+                            detail: 'appearance',
+                        }),
+                    );
+                }
+                setOpen(value);
+            }}
+        >
             <DropdownMenuTrigger asChild>
                 <button
                     type="button"
@@ -35,10 +69,14 @@ export function AppearanceMenu() {
                     title="Cambiar apariencia"
                 >
                     <ActiveIcon />
-                    <span className="hidden sm:inline">Apariencia</span>
                 </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-44">
+            <DropdownMenuContent
+                align="end"
+                sideOffset={offset}
+                collisionPadding={8}
+                className="header-menu37 w-44"
+            >
                 <DropdownMenuLabel>Apariencia</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 {options.map(({ value, label, icon: Icon }) => (

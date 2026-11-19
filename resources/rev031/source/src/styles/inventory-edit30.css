@@ -1,0 +1,16 @@
+.inventory-detail30 .form-grid,.inventory-mass-dialog30 .form-grid{align-items:start;gap:22px 24px}
+.inventory-detail30 label,.inventory-mass-dialog30 label{display:flex;flex-direction:column;gap:8px}
+.inventory-detail30 .inventory-active30,.inventory-mass-dialog30 .inventory-active30,.inventory-mass-change30>label{flex-direction:row;align-items:center;justify-content:flex-start;min-height:44px}
+.inventory-edit-notes30{grid-column:1/-1}.inventory-edit-notes30 textarea{resize:vertical}
+.inventory-lookup30{position:relative}.inventory-lookup30>input{padding-right:44px;width:100%}
+.inventory-lookup-open30{position:absolute;right:5px;top:5px;bottom:5px;width:36px;border:0;background:transparent;color:var(--green,#185344);cursor:pointer}
+.inventory-lookup-open30 svg{width:20px;height:20px}
+.inventory-lookup-list30{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:90;max-height:270px;overflow:auto;background:#fff;border:1px solid #bfd3c8;border-radius:8px;box-shadow:0 10px 24px #183b2b22;color:#183d30;padding:5px}
+.inventory-lookup-list30[hidden],.inventory-reason30[hidden]{display:none!important}
+.inventory-lookup-list30 button{display:flex;gap:6px;flex-direction:column;width:100%;text-align:left;padding:10px;border:0;border-bottom:1px solid #edf2ef;background:white;color:inherit;cursor:pointer;font:inherit}
+.inventory-lookup-list30 button span{font-size:.88em;color:#64796e}.inventory-lookup-list30 button:is(:hover,:focus){background:#e9f3ed;outline:2px solid #95b6a3;outline-offset:-2px}
+.inventory-mass-dialog30{width:min(700px,calc(100vw - 24px));max-height:calc(100dvh - 32px);overflow:auto}.inventory-mass-dialog30 .concept-head button{font-size:26px;width:40px;height:40px;padding:0}
+.inventory-mass-dialog30 .form-grid{padding:0 18px}.inventory-mass-count30{padding:0 18px;color:#576e61}.inventory-mass-dialog30 .capture-actions{margin:20px 18px 5px}
+.inventory-detail30 .req,.inventory-mass-dialog30 .req{color:#ed7c25;font-weight:700}.inventory-mass-change30{display:flex;gap:20px;align-items:center;flex-wrap:wrap}.inventory-mass-dialog30 input[type=checkbox],.inventory-detail30 input[type=checkbox]{width:18px;height:18px;accent-color:#185344;margin:0 6px 0 0}
+.inventory-detail30 input[readonly]{background:#f1f5f3;color:#63766c}
+@media(max-width:650px){.inventory-detail30 .form-grid,.inventory-mass-dialog30 .form-grid{grid-template-columns:1fr}.inventory-detail30 .capture-actions{flex-wrap:wrap}.inventory-mass-dialog30 .form-grid{padding:0 10px}}

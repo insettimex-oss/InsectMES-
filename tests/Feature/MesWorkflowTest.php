@@ -9,6 +9,7 @@ use App\Models\Operation;
 use App\Models\Part;
 use App\Models\ProductionOrder;
 use App\Models\User;
+use App\Services\MesDataService;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -28,7 +29,12 @@ class MesWorkflowTest extends TestCase
     public function test_mes_sections_are_available_to_authenticated_users(): void
     {
         foreach (['parts', 'routing', 'orders', 'control', 'nursery', 'feeding', 'inventory', 'logistics', 'trace', 'quality', 'environment', 'biosecurity', 'mass-balance', 'performance', 'maintenance', 'audit', 'continuity', 'governance', 'parameters', 'costs'] as $section) {
-            $this->get("/mes/{$section}")->assertOk();
+            $response = $this->get("/mes/{$section}");
+            if (in_array($section, ['audit', 'continuity', 'governance'], true)) {
+                $response->assertOk();
+            } else {
+                $response->assertRedirect();
+            }
         }
     }
 
@@ -94,12 +100,10 @@ class MesWorkflowTest extends TestCase
 
     public function test_order_form_only_offers_parts_with_an_approved_route(): void
     {
-        $response = $this->get('/mes/orders')->assertOk();
-
-        $response->assertInertia(fn ($page) => $page
-            ->where('data.parts', fn ($parts) => collect($parts)->isNotEmpty()
-                && collect($parts)->every(fn ($part) => DB::table('process_routes')->where('part_id', $part['id'])->exists()))
-        );
+        $this->get('/mes/orders')->assertRedirect('/dashboard#/job-manager');
+        $parts = app(MesDataService::class)->section('orders')['parts'];
+        $this->assertNotEmpty($parts);
+        $this->assertTrue($parts->every(fn ($part) => DB::table('process_routes')->where('part_id', $part->id)->exists()));
     }
 
     public function test_order_without_an_approved_route_returns_a_form_error(): void

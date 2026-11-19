@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
 /**
  * @property int $id
@@ -15,6 +16,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property float $quantity_current
  * @property string $unit
  * @property bool $active
+ * @property array<string, mixed>|null $metadata
+ * @property Carbon|null $production_lot
  * @property-read Part $part
  * @property-read Location|null $location
  */
