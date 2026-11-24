@@ -2,6 +2,10 @@
 
 Reconstrucción del prototipo InsectMES como aplicación persistente
 
+## Estado del servidor
+
+El 24 de noviembre de 2026 se verificó que InsectMES está en ejecución en el servidor local con SQLite y que la página de inicio de sesión responde correctamente.
+
 ## Stack
 
 - Laravel 13 y PHP 8.3 o posterior.
